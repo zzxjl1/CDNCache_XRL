@@ -1,3 +1,8 @@
+"""
+数据中心
+我们的模型中只有一个数据中心，它上面包含了所有的服务。
+"""
+
 from service import Service
 from alive_progress import alive_bar
 

@@ -5,6 +5,7 @@ TB2GB = 1000
 
 
 def generate_version():
+    """生成满足指数分布的版本号，即大部分用户使用的是最新版本，零星出现旧版本，越旧的版本越稀有"""
     from environment import LATEST_VERSION
 
     scale = 8   # 尺度参数
