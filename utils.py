@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from config import LATEST_VERSION
 
@@ -30,3 +31,10 @@ def generate_version():
     # 统计每个版本号出现的次数
     #print(np.unique(versions, return_counts=True))
     return versions[0]
+
+
+def calc_distance(a, b):
+    x1, y1 = a
+    x2, y2 = b
+    distance = math.sqrt((x1-x2)**2+(y1-y2)**2)
+    return distance

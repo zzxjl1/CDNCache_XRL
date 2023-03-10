@@ -1,3 +1,4 @@
+from utils import calc_distance
 import math
 import random
 from faker import Faker
@@ -17,9 +18,9 @@ class User():
         User.id_counter += 1
         self.name = faker.name()
         self.is_idle = True  # 是否处于空闲（不在下载）状态
-        x = random.randint(0, 3e3)
-        y = random.randint(0, 1e3)
-        self.location = (x, y)  # 用户位置
+        x = random.uniform(0, 3e3)
+        y = random.uniform(0, 1e3)
+        self.location = (x, y)  # 用户位置（10km）
         self.bandwidth = round(random.uniform(1, 50), 2)  # 用户带宽（mB/s）
         self.sleep_remaining = 0  # 睡眠剩余时间
         self.favor_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述偏好
@@ -28,7 +29,7 @@ class User():
         self.history = []  # 已经看过的 [IDS]
         self.connection = None  # 建立的连接
 
-    def find_source(self, env, service):
+    def find_sources(self, env, service):
         """找到从哪台服务器下载"""
         print(f"User {self.id} is downloading {service.name} {service.size} MB")
         self.is_idle = False
@@ -36,30 +37,42 @@ class User():
         # 请求边缘服务器
         nearby_servers = []
         for edge_server in env.edge_servers:
-            x1, y1 = self.location
-            x2, y2 = edge_server.location
-            distance = math.sqrt((x1-x2)**2+(y1-y2)**2)
+            distance = calc_distance(self.location, self.location)
             if distance > edge_server.service_range:  # 超出边缘服务器覆盖范围
                 continue
             nearby_servers.append((edge_server, distance))
         # 按距离排序
         nearby_servers.sort(key=lambda x: x[1])
-
-        for edge_server, _ in nearby_servers:
-            if edge_server.has_cache(service):
-                flag = True
-                return edge_server
-
-        print(f"nearby edge servers cache miss!")
-        return env.data_center  # 缓存击穿，请求数据中心
+        return nearby_servers  # 缓存击穿，通过最近的边缘服务器请求数据中心
 
     def download(self, env, service):
         """开始下载"""
-        source = self.find_source(env, service)
-        # 建立连接
-        self.connection = Connection(self, source, service)
+        sources = self.find_sources(env, service)
+        sources_with_cache = [
+            source for source, _ in sources if source.has_cache(service)]
+        flag = False
+        for source in sources_with_cache:  # 优先从缓存下载
+            flag = self.create_connection(env, source, service)
+            if flag:
+                print(f"User {self.id} 开始从缓存下载 {service.name}")
+                break
+        if not flag:  # 回源
+            for source, distance in sources:
+                print(f"User {self.id} 击穿缓存，从 {source.id} 回源")
+                flag = self.create_connection(env, source, service)
+                if flag:
+                    break
+                else:
+                    print(f"User {self.id} 回源失败，尝试下一个ES")
+        if not flag:
+            print(f"No edge server available to User {self.id}!")
+
+    def create_connection(self, env, source, service):
+        """建立连接"""
+        self.connection = Connection(self, source, service, env.now())
         self.add_history(service)
         env.trend.update(env.timestamp, service)
+        return self.connection.start()
 
     def download_progress_update(self, env):
         self.connection.tick(env)

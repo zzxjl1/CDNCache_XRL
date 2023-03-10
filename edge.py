@@ -25,12 +25,12 @@ class EdgeServer():
         self.conns = []  # 当前连接列表
 
         # 随机生成地理位置
-        x = random.randint(0, 3e3)
-        y = random.randint(0, 1e3)
-        self.location = (x, y)
+        x = random.uniform(0, 3e3)
+        y = random.uniform(0, 1e3)
+        self.location = (x, y)  # （10km）
 
         self.faulty = False  # 是否故障
-        self.service_range = random.randint(5, 40)  # 服务范围（km）
+        self.service_range = random.uniform(0.1, 1)  # 服务范围（10km）
         # 最大存储容量（mB）
         # 三级缓存形如(L1,L2,L3)，其中L1为内存，L2为SSD，L3为HDD
         L1 = random.choice([2, 3, 4, 8, 16, 24, 32])
@@ -54,6 +54,24 @@ class EdgeServer():
 
     def add_to_cache(self, service):
         self.cache[service.id] = service
+
+    def connect(self, conn):
+        if self.conn_num >= self.max_conn:
+            print(f"EdgeServer {self.id} reach max connections!")
+            return False
+        if self.faulty:
+            print(f"EdgeServer {self.id} is faulty!")
+            return False
+        if random.random() > self.stablity:
+            print(
+                f"EdgeServer {self.id} is unstable and refused the connection！")
+            return False
+        self.conns.append(conn)
+        self.conn_num += 1
+        return True
+
+    def simulate_speed_in_ms(self):
+        pass
 
     def __str__(self) -> str:
         res = f"EdgeServer id：{self.id}\n"
