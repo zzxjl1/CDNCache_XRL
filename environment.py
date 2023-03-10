@@ -14,6 +14,7 @@ class Environment():
 
     def __init__(self):
         self.timestamp = 0  # 时间戳(ms)
+        self.pause_flag = False  # 暂停标志
 
         self.edge_servers = []  # 边缘服务器集
         self.users = []  # 用户集
@@ -85,11 +86,11 @@ class Environment():
     def get_service_by_id(self, service_id):
         return self.data_center.services[service_id]
 
+    def pause(self):
+        self.pause_flag = True
+
+    def resume(self):
+        self.pause_flag = False
+
 
 env = Environment()
-
-if __name__ == "__main__":
-    import time
-    while True:
-        env.tick()
-        # time.sleep(1)
