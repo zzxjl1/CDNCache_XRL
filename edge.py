@@ -47,7 +47,13 @@ class EdgeServer():
         self.speed_limit = speed_limit
         self.stablity = stablity  # 稳定性(模拟随机出错，拒绝服务)
 
-        print(f"EdgeServer{self.id} created")
+        self.cache = {}  # 缓存
+
+    def has_cache(self, service):
+        return service.id in self.cache
+
+    def add_to_cache(self, service):
+        self.cache[service.id] = service
 
     def __str__(self) -> str:
         res = f"EdgeServer id：{self.id}\n"

@@ -1,0 +1,6 @@
+LATEST_VERSION = 5.0  # 最新版本号
+SERVICE_COUNT = 1e4  # 服务数量
+EDGE_SERVER_COUNT = 25  # 边缘服务器数量
+USER_COUNT = 500  # 用户数量
+CATAGORY_COUNT = 20  # 服务类型数量
+FEATURE_VECTOR_SIZE = 256  # 特征向量维度

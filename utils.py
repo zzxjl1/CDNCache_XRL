@@ -1,12 +1,17 @@
 import numpy as np
+from config import LATEST_VERSION
 
 GB2MB = 1000
 TB2GB = 1000
 
+SEC2MS = 1000
+MIN2SEC = 60
+HOUR2MIN = 60
+DAY2HOUR = 24
+
 
 def generate_version():
     """生成满足指数分布的版本号，即大部分用户使用的是最新版本，零星出现旧版本，越旧的版本越稀有"""
-    from environment import LATEST_VERSION
 
     scale = 8   # 尺度参数
     size = 1    # 生成 1 个版本号
