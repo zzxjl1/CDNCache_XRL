@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>可视化</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="pixi.js"></script>
+
+</head>
+
+<style>
+    body {
+        margin: 0 auto;
+    }
+</style>
+
+<body>
+    <p id="frame-indicator"></p>
+</body>
+
+<script>
+    //封装一下ajax get
+    function ajaxGet(url, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var data = JSON.parse(xhr.responseText);
+                callback(data);
+            }
+        }
+        xhr.send();
+    }
+
+    var times = 1; //位置换算倍率
+    function cast_location(location) {
+        return [location[0] * times, location[1] * times];
+    }
+
+    function get_canvas_size() {
+        ajaxGet('/get_canvas_size', function (size) {
+            console.log(size);
+            //计算倍率
+            times = Math.min(window.innerWidth / size.width, window.innerHeight / size.height);
+            console.log("位置换算倍率：", times);
+            //resize
+            app.renderer.resize(size.width * times, size.height * times);
+            //居中
+            app.view.style.position = "absolute";
+            app.view.style.left = (window.innerWidth - size.width * times) / 2 + "px";
+            app.view.style.top = (window.innerHeight - size.height * times) / 2 + "px";
+
+        });
+    }
+
+    var edge_servers;
+    function get_edge_servers() {
+        ajaxGet('/get_edge_servers', function (servers) {
+            console.log(servers);
+            edge_servers = servers;
+            //draw_edge_servers();
+        });
+    }
+
+    function draw_edge_servers() {
+        for (let id in edge_servers) {
+            const server = edge_servers[id];
+            const location = cast_location(server.location);
+            const server_sprite = PIXI.Sprite.from("server.png");
+
+            server_sprite.anchor.set(0.5);
+            server_sprite.scale.set(0.3);
+            server_sprite.position.set(location[0], location[1]);
+            app.stage.addChild(server_sprite);
+
+            service_range = new PIXI.Graphics();
+            //service_range.lineStyle(1, 0x000000, 1);
+            service_range.beginFill(0x000, 0.1);
+            service_range.drawCircle(location[0], location[1], server.service_range * times);
+            service_range.endFill();
+            app.stage.addChild(service_range);
+        }
+    }
+
+    var users;
+    function get_users() {
+        ajaxGet('/get_users', function (data) {
+            console.log('users：', data);
+            users = data;
+            //draw_users();
+        });
+    }
+
+    get_user_interval = setInterval(get_users, 200);
+    function maintainance() {
+        get_edge_servers();
+        get_timestamp();
+    }
+    maintainance()
+    mantianance_interval = setInterval(maintainance, 1000);
+
+
+    function draw_users() {
+        for (let id in users) {
+            const user = users[id];
+            const location = cast_location(user.location);
+            const user_sprite = PIXI.Sprite.from("user.png");
+
+            user_sprite.anchor.set(0.5);
+            user_sprite.scale.set(0.1);
+            user_sprite.position.set(location[0], location[1]);
+
+            //让不idle的用户闪烁
+            if (user.is_idle) {
+                user_sprite.alpha = 0.2;
+                user_sprite.tint = 0x000000;
+            }
+
+            app.stage.addChild(user_sprite);
+
+        }
+    }
+
+    var timestamp = 0;
+    function get_timestamp() {
+        ajaxGet('/get_timestamp', function (data) {
+            console.log(data);
+            timestamp = data;
+        });
+    }
+
+
+
+    const app = new PIXI.Application({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        antialias: true,
+        transparent: false,
+        resolution: 1,
+        background: '#fff'
+    });
+
+    document.body.appendChild(app.view);
+    get_canvas_size();
+
+
+    const server = PIXI.Texture.from('server.png');
+
+    app.ticker.add((delta) => {
+        //FLUSH
+        let removedChilds = app.stage.removeChildren();
+
+        removedChilds.forEach((c) => {
+            c.destroy({
+                children: true,
+                texture: false,
+                baseTexture: false,
+            });
+        });
+
+        draw_users();
+        draw_edge_servers();
+        document.getElementById('frame-indicator').innerHTML = "Timestamp：" + (timestamp);
+    });
+
+</script>
+
+</html>

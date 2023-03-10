@@ -2,10 +2,16 @@
 简易Flask服务器，用于UI可视化
 """
 
+import os
+from environment import env
 from flask import Flask, render_template, request, jsonify
 from threading import Thread
 
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder="ui",
+            static_folder="ui",
+            static_url_path=""
+            )
 server_thread = Thread(target=app.run, kwargs={
     'host': 'localhost',
     'port': 5000,
@@ -14,8 +20,8 @@ server_thread = Thread(target=app.run, kwargs={
 
 
 @app.route('/')
-def hello_world():
-    return 'Hello World'
+def index():
+    return render_template('index.html')
 
 
 @app.route('/get_canvas_size')
@@ -25,8 +31,6 @@ def get_canvas_size():
         'width': CANVAS_SIZE_X,
         'height': CANVAS_SIZE_Y
     })
-
-# 获取用户
 
 
 @app.route('/get_users')
@@ -47,7 +51,6 @@ def get_user_location():
 
 @app.route('/get_edge_servers')
 def get_edge_servers():
-    from environment import env
     result = {}
     for edge_server in env.edge_servers:
         result[edge_server.id] = {
@@ -59,9 +62,13 @@ def get_edge_servers():
     return jsonify(result)
 
 
+@app.route('/get_timestamp')
+def get_timestamp():
+    return str(env.now())
+
+
 @app.route('/pause')
 def pause():
-    from environment import env
     env.pause()
     return jsonify({'paused': env.paused})
 
@@ -76,8 +83,14 @@ def resume():
 def start_server():
     global server_thread
     server_thread.start()
+    import webbrowser
+    webbrowser.open('http://localhost:5000')
 
 
 def stop_server():
     global server_thread
     server_thread.join()
+
+
+if __name__ == '__main__':
+    start_server()
