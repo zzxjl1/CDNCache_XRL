@@ -62,6 +62,20 @@ def get_edge_servers():
     return jsonify(result)
 
 
+@app.route('/get_connections')
+def get_connections():
+    result = []
+    for server in env.edge_servers:
+        for connection in server.conns:
+            result.append({
+                'user': connection.user.id,
+                'source': connection.source.id,
+                'fetching_from_remote': connection.es_fetching_from_remote,
+            })
+
+    return jsonify(result)
+
+
 @app.route('/get_timestamp')
 def get_timestamp():
     return str(env.now())

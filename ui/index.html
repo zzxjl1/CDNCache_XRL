@@ -13,6 +13,17 @@
     body {
         margin: 0 auto;
     }
+
+    #frame-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: #000;
+        color: #fff;
+        padding: 5px;
+        font-size: 2rem;
+        margin: 0;
+    }
 </style>
 
 <body>
@@ -57,11 +68,12 @@
     var edge_servers;
     function get_edge_servers() {
         ajaxGet('/get_edge_servers', function (servers) {
-            console.log(servers);
+            //console.log(servers);
             edge_servers = servers;
             //draw_edge_servers();
         });
     }
+
 
     function draw_edge_servers() {
         for (let id in edge_servers) {
@@ -79,6 +91,8 @@
             service_range.beginFill(0x000, 0.1);
             service_range.drawCircle(location[0], location[1], server.service_range * times);
             service_range.endFill();
+
+            edge_servers[id]["sprite"] = server_sprite;
             app.stage.addChild(service_range);
         }
     }
@@ -86,13 +100,14 @@
     var users;
     function get_users() {
         ajaxGet('/get_users', function (data) {
-            console.log('users：', data);
+            //console.log('users：', data);
             users = data;
             //draw_users();
         });
     }
 
-    get_user_interval = setInterval(get_users, 200);
+    get_user_interval = setInterval(get_users, 500);
+    get_connections_interval = setInterval(get_connections, 500);
     function maintainance() {
         get_edge_servers();
         get_timestamp();
@@ -117,6 +132,7 @@
                 user_sprite.tint = 0x000000;
             }
 
+            users[id]["sprite"] = user_sprite;
             app.stage.addChild(user_sprite);
 
         }
@@ -125,8 +141,37 @@
     var timestamp = 0;
     function get_timestamp() {
         ajaxGet('/get_timestamp', function (data) {
-            console.log(data);
+            console.log("timestamp:", data);
             timestamp = data;
+        });
+    }
+
+    var connections = [];
+    function get_connections() {
+        ajaxGet('/get_connections', function (data) {
+            //console.log(data);
+            connections = data;
+            //draw_connections();
+        });
+    }
+
+    function draw_connections() {
+
+        connections.forEach(conn => {
+
+            var user_sprite = users[conn.user].sprite;
+            var server_sprite = edge_servers[conn.source].sprite;
+            var line = new PIXI.Graphics();
+
+            if (conn.fetching_from_remote) {
+                line.lineStyle(1, 0xFF0000, 0.5);
+            } else {
+                line.lineStyle(1, 0x0000FF, 0.5);
+            }
+
+            line.moveTo(user_sprite.x, user_sprite.y);
+            line.lineTo(server_sprite.x, server_sprite.y);
+            app.stage.addChild(line);
         });
     }
 
@@ -161,6 +206,7 @@
 
         draw_users();
         draw_edge_servers();
+        draw_connections();
         document.getElementById('frame-indicator').innerHTML = "Timestamp：" + (timestamp);
     });
 
