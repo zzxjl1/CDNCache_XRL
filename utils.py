@@ -38,3 +38,8 @@ def calc_distance(a, b):
     x2, y2 = b
     distance = math.sqrt((x1-x2)**2+(y1-y2)**2)
     return distance
+
+
+if __name__ == "__main__":
+    t = calc_distance((0, 0), (3, 4))
+    print(t)

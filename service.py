@@ -16,9 +16,9 @@ class Service():
         self.id = Service.id_counter
         Service.id_counter += 1
         self.name = name if name else fake.url()
-        self.version = generate_version()
+        #self.version = generate_version()
 
-        self.size = random.randint(50, 100*GB2MB)
+        self.size = random.randint(50, 2*GB2MB)
         self.feature_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述服务的特征
         # 服务的魅力值(标准正态分布)
         self.charm = round(abs(np.random.standard_normal(1)[0]), 2)
@@ -38,17 +38,16 @@ class Service():
         self.charm += bias
 
     def become_charming(self):
-        bias = random.uniform(2, 5)
-        self.charm += bias
+        self.charm = random.uniform(3, 6)
 
     def tick(self, env):
         self.causal_change()
         self.abrupt_change()
 
-    def __str__(self) -> str:
+    def show(self) -> str:
         res = f"Service id: {self.id}\n"
         res += f"Name: {self.name}\n"
-        res += f"Version: {self.version}\n"
+        #res += f"Version: {self.version}\n"
         res += f"Size: {self.size} MB\n"
         res += f"Charm: {self.charm}\n"
         #res += f"Feature vector: {self.feature_vector}\n"
@@ -57,4 +56,4 @@ class Service():
 
 if __name__ == "__main__":
     s = Service()
-    print(s)
+    print(s.show())

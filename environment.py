@@ -1,3 +1,4 @@
+from alive_progress import alive_bar
 from trend import Trend
 from remote import DataCenter
 from edge import EdgeServer
@@ -29,13 +30,20 @@ class Environment():
         print(f"{EDGE_SERVER_COUNT} edge servers created!")
 
     def init_users(self):
-        for _ in range(USER_COUNT):
-            self.users.append(User())
+        with alive_bar(USER_COUNT, title=f'生成用户中') as bar:
+            while True:
+                if len(self.users) == USER_COUNT:  # 生成了足够的用户数量
+                    break
+                user = User()
+                nearby_servers = user.find_nearby_servers(self)
+                if len(nearby_servers) > 0:  # 确保都有边缘服务器覆盖
+                    self.users.append(user)
+                    bar()
         print(f"{USER_COUNT} users created!")
 
     def make_trend(self, n=None):
         """人为造势"""
-        possibility = 1e-2
+        possibility = 1e-4
         if random.random() > possibility:
             return
 
@@ -46,13 +54,15 @@ class Environment():
         for service in new_hot_services:
             click_count = random.randint(100, 1000)
             self.trend.update(self.timestamp, service, click_count)
-        print(f"{new_hot_service_num} 个服务因为人工造势火了!")
+            service.become_charming()
+        print(f"以下{new_hot_service_num} 个服务因为人工造势火了:{new_hot_services}")
 
     def tick(self):
         """时钟滴答"""
-        print(f"Time: {self.timestamp}")
+        if self.timestamp % 100 == 0:
+            print(f"Timestamp: {self.timestamp} Millisecond")
 
-        if random.random() < 0.2:  # 一定概率有新服务上传
+        if random.random() < 1e-3:  # 一定概率有新服务上传
             new_upload_num = random.randint(0, 100)
             for _ in range(new_upload_num):
                 self.data_center.add_service()  # 新服务诞生
@@ -71,6 +81,9 @@ class Environment():
 
     def now(self):
         return self.timestamp
+
+    def get_service_by_id(self, service_id):
+        return self.data_center.services[service_id]
 
 
 env = Environment()

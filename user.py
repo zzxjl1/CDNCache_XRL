@@ -3,7 +3,7 @@ import math
 import random
 from faker import Faker
 import numpy as np
-from config import FEATURE_VECTOR_SIZE
+from config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y
 from connection import Connection
 from utils import SEC2MS
 
@@ -18,10 +18,10 @@ class User():
         User.id_counter += 1
         self.name = faker.name()
         self.is_idle = True  # 是否处于空闲（不在下载）状态
-        x = random.uniform(0, 3e3)
-        y = random.uniform(0, 1e3)
-        self.location = (x, y)  # 用户位置（10km）
-        self.bandwidth = round(random.uniform(1, 50), 2)  # 用户带宽（mB/s）
+        x = random.uniform(0, CANVAS_SIZE_X)
+        y = random.uniform(0, CANVAS_SIZE_Y)
+        self.location = (x, y)  # 用户位置
+        self.bandwidth = round(random.uniform(10, 100), 2)  # 用户带宽（mB/s）
         self.sleep_remaining = 0  # 睡眠剩余时间
         self.favor_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述偏好
         self.change_favor_posssibility = 1e-3  # 用户改变偏好的概率
@@ -29,43 +29,52 @@ class User():
         self.history = []  # 已经看过的 [IDS]
         self.connection = None  # 建立的连接
 
-    def find_sources(self, env, service):
-        """找到从哪台服务器下载"""
-        print(f"User {self.id} is downloading {service.name} {service.size} MB")
-        self.is_idle = False
+        self.sleep()
 
-        # 请求边缘服务器
+    def find_nearby_servers(self, env):
+
         nearby_servers = []
         for edge_server in env.edge_servers:
-            distance = calc_distance(self.location, self.location)
+            distance = calc_distance(self.location, edge_server.location)
             if distance > edge_server.service_range:  # 超出边缘服务器覆盖范围
                 continue
             nearby_servers.append((edge_server, distance))
         # 按距离排序
         nearby_servers.sort(key=lambda x: x[1])
+
         return nearby_servers  # 缓存击穿，通过最近的边缘服务器请求数据中心
 
     def download(self, env, service):
         """开始下载"""
-        sources = self.find_sources(env, service)
+        print(f"{self} is downloading {service} ({service.size} MB)")
+        self.is_idle = False
+        nearby_servers = self.find_nearby_servers(env)
+
+        text = f"{self} 在 {len(nearby_servers)} 个边缘服务器的覆盖范围内\n"
+        text += f"距离由进到远依次为：{nearby_servers}"
+        print(text)
+
         sources_with_cache = [
-            source for source, _ in sources if source.has_cache(service)]
+            source for source, _ in nearby_servers if source.has_cache(service)]
+        print(
+            f"{self} 在以下 {len(sources_with_cache)} 个边缘服务器的缓存中找到了 {service}：\n{sources_with_cache}")
         flag = False
         for source in sources_with_cache:  # 优先从缓存下载
             flag = self.create_connection(env, source, service)
             if flag:
-                print(f"User {self.id} 开始从缓存下载 {service.name}")
+                print(f"{self} 开始从缓存下载 {service}")
                 break
         if not flag:  # 回源
-            for source, distance in sources:
-                print(f"User {self.id} 击穿缓存，从 {source.id} 回源")
+            for source, distance in nearby_servers:
+                print(f"{self} 击穿缓存，尝试从 {source} 回源")
                 flag = self.create_connection(env, source, service)
                 if flag:
                     break
                 else:
-                    print(f"User {self.id} 回源失败，尝试下一个ES")
-        if not flag:
-            print(f"No edge server available to User {self.id}!")
+                    print(f"{self}从 {source} 回源失败，尝试下一个ES")
+        if not flag:  # 回源也全部失败
+            self.is_idle = True
+            print(f"No edge server available to {self}!")
 
     def create_connection(self, env, source, service):
         """建立连接"""
@@ -77,12 +86,16 @@ class User():
     def download_progress_update(self, env):
         self.connection.tick(env)
 
-    def download_finished(self, env):
-        """用户下载完成"""
+    def sleep(self):
+        self.sleep_remaining = random.randint(1, 10)*SEC2MS
         print(
-            f"User {self.id} finished downloading!")
+            f"【用户休眠了】{self} went to sleep for {self.sleep_remaining} Milliseconds")
+
+    def download_finished(self):
+        """用户下载完成"""
+        print(f"【下载完成】{self} finished downloading {self.connection.service}!")
         self.is_idle = True
-        self.sleep_remaining = random.randint(1, 10)*SEC2MS  # 下载完成后休息一段时间
+        self.sleep()  # 下载完成后休息一段时间
 
     def change_favor(self):
         """模拟一点点改变偏好"""
@@ -138,7 +151,7 @@ class User():
         else:  # 下载中
             self.download_progress_update(env)
 
-    def __str__(self) -> str:
+    def show(self) -> str:
         res = f"User id: {self.id}\n"
         res += f"Name: {self.name}\n"
         res += f"Bandwidth: {self.bandwidth} MB/s\n"

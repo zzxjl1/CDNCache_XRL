@@ -21,12 +21,12 @@ class DataCenter():
                 bar()
         print(f"{count} services created!")
 
-    def add_service(self):
+    def add_service(self) -> Service:
         s = Service()
         # print(s)
         self.services[s.id] = s
         return s
 
-    def get_random_services(self, count):
+    def get_random_services(self, count) -> list[Service]:
         """随机获取服务"""
         return random.sample(list(self.services.values()), count)
