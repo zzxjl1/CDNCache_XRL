@@ -74,10 +74,11 @@ class User():
                     print(f"{self}从 {source} 回源失败，尝试下一个ES")
         if not flag:  # 回源也全部失败
             self.is_idle = True
-            print(f"No edge server available to {self}!")
+            print(f"No edge server available to {self}, fatal error!")
 
     def create_connection(self, env, source, service):
         """建立连接"""
+        print(f"【创建连接】{self} is creating connection to {source}")
         self.connection = Connection(self, source, service, env.now())
         self.add_history(service)
         env.trend.update(env.timestamp, service)
@@ -87,7 +88,7 @@ class User():
         self.connection.tick(env)
 
     def sleep(self):
-        self.sleep_remaining = random.randint(1, 10)*SEC2MS
+        self.sleep_remaining = int(random.uniform(0, 60)*SEC2MS)
         print(
             f"【用户休眠了】{self} went to sleep for {self.sleep_remaining} Milliseconds")
 
@@ -109,19 +110,25 @@ class User():
         """找到最符合用户偏好的服务"""
         fav_service = None
         best_score = -1
+        print(f"有以下 {len(services)} 个服务可供 {self} 选择：\n{services}")
         for service in services:
-            if service.charm > 5:  # 存在超高魅力值，直接选中
+            if service.charm > 10:  # 存在超高魅力值，直接选中
+                print(
+                    f"【服务被选择】{service} with super high charm {service.charm} got selected by {self}!")
                 return service
             # 依据喜好和服务魅力打分
             score = abs(np.sum(self.favor_vector -
                                service.feature_vector))*service.charm
             if service.id in self.history:
                 #score = float("-inf")
+                print(f"{self} 已经看过 {service}了，因此兴趣减半")
                 score /= 2
             if score > best_score:
                 best_score = score
-                # print(best_score)
+                #print(best_score, service)
                 fav_service = service
+        print(
+            f"【服务被选择】{fav_service} got selected by {self} with favor score {best_score}")
         return fav_service
 
     def choose_service(self, env):
@@ -138,6 +145,7 @@ class User():
         if len(self.history) > 10:
             self.history.pop(0)
         self.history.append(service.id)  # 标记为已看过的
+        print(f"{self} 将 {service} 标记为已看过")
 
     def tick(self, env):
         """时钟滴答"""
@@ -148,6 +156,7 @@ class User():
         if self.is_idle:  # 空闲状态
             service = self.choose_service(env)
             self.download(env, service)
+            print(f"【用户开始请求】{self} is downloading {self.connection.service}")
         else:  # 下载中
             self.download_progress_update(env)
 
