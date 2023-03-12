@@ -30,7 +30,7 @@ class EdgeServer():
         self.location = (x, y)
 
         self.faulty = False  # 是否故障
-        self.service_range = random.randint(5, 50)  # 服务范围
+        self.service_range = random.randint(10, 50)  # 服务范围
 
         # 最大存储容量（mB）
         # 三级缓存形如(L1,L2,L3)，其中L1为内存，L2为SSD，L3为HDD

@@ -8,7 +8,7 @@ ACTIONS = ["IDLE", "L1", "L2", "L3"]
 
 
 def generate_observation(env, conn):
-    nearby_servers = conn.source.find_nearby_servers(env, 20)
+    nearby_servers = conn.source.find_nearby_servers(env, 40)
     return {
         # "is_faulty": conn.source.faulty,  # ES服务器是否故障
         "server_stablity": conn.source.stablity,  # ES服务器运行稳定性
@@ -26,12 +26,12 @@ def generate_observation(env, conn):
         "free_storage_size_L2": conn.source.free_storage_size("L2"),
         # 当前ES的L3剩余空间
         "free_storage_size_L3": conn.source.free_storage_size("L3"),
-        # 当前ES的L1预估速度
-        "estimated_L1_speed": conn.source.get_estimated_cache_speed("L1"),
-        # 当前ES的L2预估速度
-        "estimated_L2_speed": conn.source.get_estimated_cache_speed("L2"),
-        # 当前ES的L3预估速度
-        "estimated_L3_speed": conn.source.get_estimated_cache_speed("L3"),
+        # L1能放得下
+        "can_L1_fit": conn.source.free_storage_size("L1") > conn.service.size,
+        # L2能放得下
+        "can_L2_fit": conn.source.free_storage_size("L2") > conn.service.size,
+        # L3能放得下
+        "can_L3_fit": conn.source.free_storage_size("L3") > conn.service.size,
         # 服务大小
         "service_size": conn.service.size,
         # 预估回源用时
@@ -42,9 +42,9 @@ def generate_observation(env, conn):
         "charm": conn.service.charm,
         # 服务的短期被请求频率
         "service_request_frequency": conn.service.request_frequency,
-        # 短距离（20km）内的ES个数
+        # 短距离（N km）内的ES个数
         "nearby_servers_count": len(nearby_servers),
-        # 短距离（20km）内是否已有其它ES缓存
+        # 短距离（N km）内是否已有其它ES缓存
         "nearby_servers_cached": any([s.has_cache(conn.service) for s in nearby_servers]),
         # 该ES服务器被请求的频率
         "ES_request_frequency": conn.source.request_frequency,
@@ -104,8 +104,8 @@ def reward_event(type, data=None):
     elif type == "FAILED_TO_CONNECT":
         t = -1
 
-    #env.reward += t
-    env.reward = t
+    env.reward += t
+    #env.reward = t
     print(f"【reward】:change by {t}, total reward:{env.reward}")
 
 # TODO: 淘汰策略 + 写入缓存需要时间

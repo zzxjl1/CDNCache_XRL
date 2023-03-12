@@ -31,7 +31,7 @@ class User():
         self.sleep()
 
         if DEBUG:
-            self.bandwidth *= 100
+            self.bandwidth *= 10
 
     def find_nearby_servers(self, env):
 
