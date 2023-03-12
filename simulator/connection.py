@@ -1,7 +1,8 @@
 import random
-from edge import EdgeServer
-from service import Service
+from .edge import EdgeServer
+from .service import Service
 from utils import SEC2MS, calc_distance
+from .config import DEBUG
 from enum import Enum
 
 
@@ -41,12 +42,20 @@ class Connection():
         print(
             f"connection from {self.user} to {self.source} {status}!")
 
-    def start(self) -> bool:
+    def send_reward(self, env):
+        t = "CACHE_HIT" if self.cached else "CACHE_MISS"
+        d = self.cache_level
+        env.reward_event(t, d)
+
+    def start(self, env) -> bool:
         self.set_status(ConnectionStatus.PENDING)
         flag = self.source.connect(self)
-
+        self.service.add_history(self)
+        env.request_callback(self)
+        self.send_reward(env)
         if not flag:
             self.set_status(ConnectionStatus.FAILED)
+            env.reward_event("FAILED_TO_CONNECT")
         return flag
 
     def close(self):
@@ -57,8 +66,10 @@ class Connection():
         self.delays["propagation_delay"] = random.uniform(1, 10)  # ms
 
     def print_download_percentage(self, master, file, now, total, speed, str=""):
+        if DEBUG:
+            return
         percentage = round(now/total*100)
-        if random.random() < 5e-3:
+        if random.random() < 5e-4:
             print(
                 f"{str}{master} downloading {file}, [{now:.2f}MB/{total}MB],{speed:.2f}MB/S, {percentage}%")
 
@@ -70,9 +81,8 @@ class Connection():
             if not self.es_fetching_from_remote:
                 self.es_fetching_from_remote = True
                 self.es_fetch_remaining_size = self.service.size
-                self.source.services_to_fetch.append(self.service)
-                print(
-                    f"【开始回源】{self.source} start fetching {self.service} from remote!")
+                self.source.fetch_from_datacenter(self.service)
+
             speed = self.source.fetch_from_datacenter_speed()
             # 加入随机因素
             speed *= random.uniform(0.8, 1.2)
@@ -89,13 +99,14 @@ class Connection():
                 self.cache_level = "L1"
                 self.es_fetching_from_remote = False
                 self.es_fetch_remaining_size = 0
-                print(
-                    f"【回源完毕！】{self.source} done fetching {self.service}, 接下来开始向用户传输！")
+                self.source.finish_fetch_from_datacenter(self.service)
+
             return 0
 
         else:
             # 如果有缓存，速度取决于缓存的位置、ES负载、ES带宽、用户带宽、ES限速、距离
-            speed = self.source.get_available_speed_with_cache(self)
+            speed = self.source.get_estimated_download_speed_with_cache(
+                self.cache_level)
             # 距离越远，速度越慢
             speed *= 1 - self.distance / 200
             if speed > self.user.bandwidth:  # 速度不能超过用户带宽

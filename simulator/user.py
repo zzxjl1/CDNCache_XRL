@@ -1,10 +1,9 @@
 from utils import calc_distance
-import math
 import random
 from faker import Faker
 import numpy as np
-from config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y
-from connection import Connection
+from .config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG
+from .connection import Connection
 from utils import SEC2MS
 
 faker = Faker()
@@ -30,6 +29,9 @@ class User():
         self.connection = None  # 建立的连接
 
         self.sleep()
+
+        if DEBUG:
+            self.bandwidth *= 100
 
     def find_nearby_servers(self, env):
 
@@ -82,12 +84,14 @@ class User():
         self.connection = Connection(self, source, service, env.now())
         self.add_history(service)
         env.trend.update(env.timestamp, service)
-        return self.connection.start()
+        return self.connection.start(env)
 
     def download_progress_update(self, env):
         self.connection.tick(env)
 
     def sleep(self):
+        if DEBUG:  # 为了方便DEBUG
+            return
         self.sleep_remaining = int(random.uniform(0, 60)*SEC2MS)
         print(
             f"【用户休眠了】{self} went to sleep for {self.sleep_remaining} Milliseconds")
@@ -110,7 +114,7 @@ class User():
         """找到最符合用户偏好的服务"""
         fav_service = None
         best_score = -1
-        print(f"有以下 {len(services)} 个服务可供 {self} 选择：\n{services}")
+        print(f"有 {len(services)} 个服务可供 {self} 选择")
         for service in services:
             if service.charm > 10:  # 存在超高魅力值，直接选中
                 print(
@@ -133,7 +137,7 @@ class User():
 
     def choose_service(self, env):
         ramdom_services = env.data_center.get_random_services(
-            200)  # 用户会自己翻200个服务
+            200)  # 用户会自己翻n个服务
         top_services = env.trend.top  # 从趋势中找到最热门的服务
         services = ramdom_services + top_services
         # 从中找到最符合自己偏好的

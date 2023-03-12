@@ -5,7 +5,7 @@ from utils import SEC2MS, MIN2SEC, HOUR2MIN, DAY2HOUR
 
 class Trend():
     def __init__(self) -> None:
-        self.expire = 10*MIN2SEC*SEC2MS  # 10min
+        self.expire = 1*MIN2SEC*SEC2MS  # 1min
         self.click_history_ids = []
         self.index2time = []
         self.top = []

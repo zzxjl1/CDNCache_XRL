@@ -1,0 +1,5 @@
+alive_progress==2.4.1
+Faker==13.13.0
+Flask==2.1.1
+numpy==1.22.3
+torch==1.11.0

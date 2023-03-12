@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from config import LATEST_VERSION
+from simulator.config import LATEST_VERSION
 
 GB2MB = 1000
 TB2GB = 1000
@@ -29,7 +29,7 @@ def generate_version():
 
     # print(versions)
     # 统计每个版本号出现的次数
-    #print(np.unique(versions, return_counts=True))
+    # print(np.unique(versions, return_counts=True))
     return versions[0]
 
 
@@ -38,6 +38,28 @@ def calc_distance(a, b):
     x2, y2 = b
     distance = math.sqrt((x1-x2)**2+(y1-y2)**2)
     return distance
+
+
+def add_connection_history(connection_history, conn, max_len=20):
+    connection_history.append(conn)
+    if len(connection_history) > max_len:  # 保留最近20次连接
+        connection_history.pop(0)
+
+
+def calc_request_frequency(connection_history):
+    if len(connection_history) <= 1:
+        return 0
+    total_time = connection_history[-1].birth - \
+        connection_history[0].birth
+    if total_time == 0:
+        return 1e-3  # 防止除0错误
+    return len(connection_history)/total_time*SEC2MS
+
+
+def pop_expired_connection_history(connection_history, env, threshold=1*MIN2SEC*SEC2MS):
+    for conn in connection_history:  # 删除超时的连接历史
+        if env.now()-conn.birth > threshold:
+            connection_history.remove(conn)
 
 
 if __name__ == "__main__":

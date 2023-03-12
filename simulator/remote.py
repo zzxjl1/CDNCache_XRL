@@ -5,7 +5,7 @@
 
 import random
 from alive_progress import alive_bar
-from service import Service
+from .service import Service
 
 
 class DataCenter():

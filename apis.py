@@ -1,10 +1,10 @@
 """
 简易Flask服务器，用于UI可视化
 """
-
-import os
-from environment import env
-from flask import Flask, render_template, request, jsonify
+import logging
+from simulator import env
+from simulator.config import CANVAS_SIZE_X, CANVAS_SIZE_Y
+from flask import Flask, render_template, jsonify
 from threading import Thread
 
 app = Flask(__name__,
@@ -12,6 +12,10 @@ app = Flask(__name__,
             static_folder="ui",
             static_url_path=""
             )
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 server_thread = Thread(target=app.run, kwargs={
     'host': 'localhost',
     'port': 5000,
@@ -26,7 +30,6 @@ def index():
 
 @app.route('/get_canvas_size')
 def get_canvas_size():
-    from config import CANVAS_SIZE_X, CANVAS_SIZE_Y
     return jsonify({
         'width': CANVAS_SIZE_X,
         'height': CANVAS_SIZE_Y
@@ -35,7 +38,6 @@ def get_canvas_size():
 
 @app.route('/get_users')
 def get_user_location():
-    from environment import env
     result = {}
     for user in env.users:
         result[user.id] = {
@@ -89,7 +91,6 @@ def pause():
 
 @app.route('/resume')
 def resume():
-    from environment import env
     env.resume()
     return jsonify({'paused': env.paused})
 

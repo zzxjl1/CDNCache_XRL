@@ -1,10 +1,10 @@
 from alive_progress import alive_bar
-from trend import Trend
-from remote import DataCenter
-from edge import EdgeServer
-from user import User
 from faker import Faker
-from config import SERVICE_COUNT, EDGE_SERVER_COUNT, USER_COUNT
+from .trend import Trend
+from .remote import DataCenter
+from .edge import EdgeServer
+from .user import User
+from .config import SERVICE_COUNT, EDGE_SERVER_COUNT, USER_COUNT
 import random
 
 fake = Faker()
@@ -15,6 +15,7 @@ class Environment():
     def __init__(self):
         self.timestamp = 0  # 时间戳(ms)
         self.pause_flag = False  # 暂停标志
+        self.request_callback = None  # 请求回调函数
 
         self.edge_servers = []  # 边缘服务器集
         self.users = []  # 用户集
@@ -74,6 +75,9 @@ class Environment():
 
         for service in self.data_center.services.values():  # 刷新服务的状态
             service.tick(self)
+
+        for edge_server in self.edge_servers:  # 刷新边缘服务器的状态
+            edge_server.tick(self)
 
         self.make_trend()
         self.trend.tick(self)
