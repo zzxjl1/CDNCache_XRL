@@ -20,10 +20,10 @@ class User():
         x = random.uniform(0, CANVAS_SIZE_X)
         y = random.uniform(0, CANVAS_SIZE_Y)
         self.location = (x, y)  # 用户位置
-        self.bandwidth = round(random.uniform(10, 100), 2)  # 用户带宽（mB/s）
+        self.bandwidth = round(random.uniform(20, 100), 2)  # 用户带宽（mB/s）
         self.sleep_remaining = 0  # 睡眠剩余时间
         self.favor_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述偏好
-        self.change_favor_posssibility = 1e-3  # 用户改变偏好的概率
+        self.change_favor_posssibility = 1e-5  # 用户改变偏好的概率
 
         self.history = []  # 已经看过的 [IDS]
         self.connection = None  # 建立的连接
@@ -31,7 +31,7 @@ class User():
         self.sleep()
 
         if DEBUG:
-            self.bandwidth *= 10
+            self.bandwidth *= 1000
 
     def find_nearby_servers(self, env):
 
@@ -92,7 +92,7 @@ class User():
     def sleep(self):
         if DEBUG:  # 为了方便DEBUG
             return
-        self.sleep_remaining = int(random.uniform(0, 60)*SEC2MS)
+        self.sleep_remaining = int(random.uniform(0, 5)*SEC2MS)
         print(
             f"【用户休眠了】{self} went to sleep for {self.sleep_remaining} Milliseconds")
 
@@ -107,8 +107,11 @@ class User():
         if random.random() > self.change_favor_posssibility:  # 概率
             return
 
-        self.favor_vector += np.random.standard_normal(
+        self.favor_vector += np.random.uniform(
             FEATURE_VECTOR_SIZE) * 1e-2
+
+    def have_seen(self, service):
+        return service.id in self.history
 
     def find_favorite_service(self, services):
         """找到最符合用户偏好的服务"""
@@ -116,17 +119,18 @@ class User():
         best_score = -1
         print(f"有 {len(services)} 个服务可供 {self} 选择")
         for service in services:
-            if service.charm > 10:  # 存在超高魅力值，直接选中
+            already_seen = self.have_seen(service)
+            if service.charm > 10 and not already_seen:  # 存在超高魅力值，直接选中
                 print(
                     f"【服务被选择】{service} with super high charm {service.charm} got selected by {self}!")
                 return service
             # 依据喜好和服务魅力打分
-            score = abs(np.sum(self.favor_vector -
-                               service.feature_vector))*service.charm
-            if service.id in self.history:
-                #score = float("-inf")
-                print(f"{self} 已经看过 {service}了，因此兴趣减半")
-                score /= 2
+            score = np.sum(np.absolute(self.favor_vector -
+                                       service.feature_vector))*service.charm
+           # if already_seen:
+           #     #score = float("-inf")
+           #     print(f"{self} 已经看过 {service}了，因此兴趣减半")
+           #     score /= 2
             if score > best_score:
                 best_score = score
                 #print(best_score, service)
@@ -137,7 +141,7 @@ class User():
 
     def choose_service(self, env):
         ramdom_services = env.data_center.get_random_services(
-            200)  # 用户会自己翻n个服务
+            100)  # 用户会自己翻n个服务
         top_services = env.trend.top  # 从趋势中找到最热门的服务
         services = ramdom_services + top_services
         # 从中找到最符合自己偏好的

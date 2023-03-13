@@ -72,7 +72,7 @@ def get_connections():
             result.append({
                 'user': connection.user.id,
                 'source': connection.source.id,
-                'fetching_from_remote': connection.es_fetching_from_remote,
+                'fetching_from_remote': not connection.cached,
             })
 
     return jsonify(result)

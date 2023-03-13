@@ -20,7 +20,7 @@ class Trend():
         result = np.unique(self.click_history_ids, return_counts=True)
         return zip(result[0], result[1])
 
-    def calc_top(self, env, n=50):
+    def calc_top(self, env, n=30):
         result = self.statistics()
         result = sorted(result, key=lambda x: x[1], reverse=True)[:n]
         ids = [x[0] for x in result]

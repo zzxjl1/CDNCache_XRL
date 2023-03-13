@@ -18,7 +18,7 @@ class Service():
         self.name = name if name else fake.url()
         #self.version = generate_version()
 
-        self.size = random.randint(50, 2*GB2MB)
+        self.size = round(random.uniform(0.01, 1)*GB2MB)
         self.feature_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述服务的特征
         # 服务的魅力值(标准正态分布)
         self.charm = round(abs(np.random.standard_normal(1)[0]), 2)
@@ -30,7 +30,7 @@ class Service():
             self.request_history.pop(0)
 
     def causal_change(self):
-        change_possibility = 1e-2
+        change_possibility = 1e-3
         if random.random() > change_possibility:
             return
         bias = random.uniform(-0.2, 0.2)

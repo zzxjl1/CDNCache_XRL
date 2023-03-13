@@ -4,15 +4,16 @@ from simulator import env
 #from d3qn import Agent
 from D3QN import D3QN
 
-ACTIONS = ["IDLE", "L1", "L2", "L3"]
+ACTIONS = ["IDLE", "L1", "L2", "L3", "OVRERWRITE_L1",
+           "OVRERWRITE_L2", "OVRERWRITE_L3"]
 
 
 def generate_observation(env, conn):
     nearby_servers = conn.source.find_nearby_servers(env, 40)
     return {
-        # "is_faulty": conn.source.faulty,  # ES服务器是否故障
+        "is_faulty": conn.source.faulty,  # ES服务器是否故障
         "server_stablity": conn.source.stablity,  # ES服务器运行稳定性
-        "cached": conn.cached,  # 是否已被缓存
+        # "cached": conn.cached,  # 是否已被缓存
         # 是否正在被缓存
         "is_being_cached": conn.source.is_caching_service(conn.service),
         "cached_in_L1": conn.cache_level == "L1",  # 是否已被缓存在L1
@@ -57,7 +58,7 @@ obs_dim = 22
 #              batch_size=64, input_dims=[obs_dim])
 agent = D3QN(alpha=0.0003, state_dim=obs_dim, action_dim=len(ACTIONS),
              fc1_dim=256, fc2_dim=256, ckpt_dir="/models", gamma=0.99, tau=0.005, epsilon=1.0,
-             eps_end=0.05, eps_dec=5e-4, max_size=1000000, batch_size=256)
+             eps_end=0.05, eps_dec=5e-4, max_size=1000000, batch_size=64)
 
 count = 0
 env.reward = 0
@@ -76,10 +77,18 @@ def request_callback(conn):
         action_index = agent.choose_action(obs)
         action = ACTIONS[action_index]
         print("【action】: ", action)
+
+        if action.startswith("OVRERWRITE"):
+            level = action.split("_")[-1]
+            overwire = True
+        else:
+            level = action
+            overwire = False
+
         if action == "IDLE":
             pass
         else:
-            conn.source.add_to_cache(env, conn.service, action)
+            conn.source.add_to_cache(env, conn.service, level, overwire)
         agent.remember(obs, action_index, env.reward, obs_, int(done))
         env.reward = 0  # reset reward
     obs = obs_
@@ -91,10 +100,12 @@ def request_callback(conn):
 
 def reward_event(type, data=None):
     print(f"reward_event called: {type}, data:{data}")
+    t = 0
     if type == "CACHE_HIT":
         levels = ["L1", "L2", "L3"]  # L1 is the best
         index = levels.index(data)
         t = len(levels) - index
+
     elif type == "CACHE_MISS":
         t = -1
     elif type == "CACHE_FULL":
@@ -108,7 +119,7 @@ def reward_event(type, data=None):
     #env.reward = t
     print(f"【reward】:change by {t}, total reward:{env.reward}")
 
-# TODO: 淘汰策略 + 写入缓存需要时间
+# TODO: 淘汰策略  + 自动保存
 
 
 env.request_callback = request_callback

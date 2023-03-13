@@ -10,7 +10,7 @@ class EdgeServer():
     def __init__(self,
                  use_uuid=False,
                  max_conn=200,
-                 bandwidth=1000,
+                 bandwidth=10*GB2MB,
                  speed_limit=-1,
                  stablity=0.99
                  ) -> None:
@@ -34,9 +34,9 @@ class EdgeServer():
 
         # 最大存储容量（mB）
         # 三级缓存形如(L1,L2,L3)，其中L1为内存，L2为SSD，L3为HDD
-        L1 = random.choice([2, 3, 4, 8, 16, 24, 32])
-        L2 = random.randint(128, 2*TB2GB)
-        L3 = random.randint(2, 8)*TB2GB
+        L1 = random.choice([2, 3, 4, 8])
+        L2 = random.choice([64, 128, 256])
+        L3 = random.choice([200, 300, 500, 700, 1000])
         self.storage_size = (L1, L2, L3)
 
         L1_speed = random.randint(8, 40)*GB2MB
@@ -113,18 +113,38 @@ class EdgeServer():
         network_speed = self.estimated_network_speed
         return network_speed  # 每秒的速度
 
-    def add_to_cache(self, env, service, level):
-        if self.storage_used(level)+service.size > self.get_storage_size(level)*GB2MB:
-            print(f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}")
+    def exceed_size_limit_with_service_added(self, service, level):
+        return self.storage_used(level)+service.size > self.get_storage_size(level)*GB2MB
+
+    def pop_least_frequently_requested(self, level):
+        if len(self.cache[level]) == 0:
+            return
+        self.cache[level].sort(key=lambda s: s.request_frequency)
+        self.cache[level].pop(0)
+        print(f"【缓存警告】{self} 的 {level} CACHE 已满，正在删除最不常请求的服务！")
+
+    def add_to_cache(self, env, service, level, overwrite=False):
+
+        if service.size > self.get_storage_size(level)*GB2MB:
             env.reward_event("CACHE_FULL")
-            return False
+            print(f"【容量警告】{service} 超出 {self} 的 {level} CACHE 最大容量")
+            return
+
+        if self.exceed_size_limit_with_service_added(service, level):
+            print(f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}")
+            if overwrite:
+                self.pop_least_frequently_requested(level)
+                self.add_to_cache(env, service, level, overwrite)
+            else:
+                env.reward_event("CACHE_FULL")
+                return
 
         if self.has_cache(service):  # 如果已经在缓存中
             already_in_cache_level = self.get_cache_level(service)
             if already_in_cache_level == level:  # 如果已经在缓存中的位置和要添加的位置一样
                 print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
                 env.reward_event("CACHE_DUPLICATE")
-                return False
+
             else:  # 如果已经在缓存中的位置和要添加的位置不一样
                 print(
                     f"{service}已经在 {self} 的 {already_in_cache_level} CACHE 中，正在将其移动到 {level} CACHE")
@@ -133,7 +153,6 @@ class EdgeServer():
 
         self.cache[level].append(service)
         print(f"【添加缓存】 {self} 存储 {service} 到 {level} CACHE")
-        return True
 
     def delete_from_cache(self, service):
         for level in self.cache.keys():

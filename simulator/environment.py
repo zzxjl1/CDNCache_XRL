@@ -65,7 +65,7 @@ class Environment():
             print(f"Timestamp: {self.timestamp} Millisecond")
 
         if random.random() < 1e-3:  # 一定概率有新服务上传
-            new_upload_num = random.randint(0, 100)
+            new_upload_num = random.randint(0, 10)
             for _ in range(new_upload_num):
                 self.data_center.add_service()  # 新服务诞生
             print(f"{new_upload_num} new services uploaded!")
