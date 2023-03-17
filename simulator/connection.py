@@ -137,6 +137,6 @@ class Connection():
                                            speed=download_speed,
                                            str="【用户从ES下载】")
             if self.downloaded >= self.service.size:
-                self.status = ConnectionStatus.FINISHED
+                self.set_status(ConnectionStatus.FINISHED)
                 self.user.download_finished()
                 self.close()

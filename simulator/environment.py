@@ -11,12 +11,15 @@ fake = Faker()
 
 
 class Environment():
+    def reward_event(self, t, d=None):  # 奖励事件回调函数
+        pass
+
+    def request_callback(self, connection):  # 请求回调函数
+        pass
 
     def __init__(self):
         self.timestamp = 0  # 时间戳(ms)
         self.pause_flag = False  # 暂停标志
-        self.request_callback = None  # 请求回调函数
-
         self.edge_servers = []  # 边缘服务器集
         self.users = []  # 用户集
         self.trend = Trend()  # 时下流行

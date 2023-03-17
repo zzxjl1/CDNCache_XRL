@@ -59,6 +59,7 @@ class D3QN:
                                    max_size=max_size, batch_size=batch_size)
 
         self.update_network_parameters(tau=1.0)
+        self.load_models()
 
     def update_network_parameters(self, tau=None):
         if tau is None:
@@ -121,10 +122,13 @@ class D3QN:
             self.checkpoint_dir + '/D3QN_Q_target.pth')
         print('Saving Q_target network successfully!')
 
-    def load_models(self, episode):
-        self.q_eval.load_checkpoint(
-            self.checkpoint_dir + '/D3QN_q_eval.pth')
-        print('Loading Q_eval network successfully!')
-        self.q_target.load_checkpoint(
-            self.checkpoint_dir + '/D3QN_Q_target.pth')
-        print('Loading Q_target network successfully!')
+    def load_models(self):
+        try:
+            self.q_eval.load_checkpoint(
+                self.checkpoint_dir + '/D3QN_q_eval.pth')
+            print('Loading Q_eval network successfully!')
+            self.q_target.load_checkpoint(
+                self.checkpoint_dir + '/D3QN_Q_target.pth')
+            print('Loading Q_target network successfully!')
+        except FileNotFoundError:
+            print('No saved network found!')

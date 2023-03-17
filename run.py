@@ -4,9 +4,6 @@ from simulator import env
 #from d3qn import Agent
 from D3QN import D3QN
 
-ACTIONS = ["IDLE", "L1", "L2", "L3", "OVRERWRITE_L1",
-           "OVRERWRITE_L2", "OVRERWRITE_L3"]
-
 
 def generate_observation(env, conn):
     nearby_servers = conn.source.find_nearby_servers(env, 40)
@@ -52,6 +49,8 @@ def generate_observation(env, conn):
     }
 
 
+ACTIONS = ["IDLE", "L1", "L2", "L3", "OVRERWRITE_L1",
+           "OVRERWRITE_L2", "OVRERWRITE_L3"]
 obs = None
 obs_dim = 22
 # agent = Agent(gamma=0.99, n_actions=len(ACTIONS), epsilon=1.0,
@@ -59,7 +58,6 @@ obs_dim = 22
 agent = D3QN(alpha=0.0003, state_dim=obs_dim, action_dim=len(ACTIONS),
              fc1_dim=256, fc2_dim=256, ckpt_dir="./models", gamma=0.99, tau=0.005, epsilon=1.0,
              eps_end=0.05, eps_dec=5e-4, max_size=1000000, batch_size=64)
-
 count = 0
 env.reward = 0
 
@@ -72,7 +70,7 @@ def request_callback(conn):
     obs_ = generate_observation(env, conn)
     print(obs_)
     obs_ = list(obs_.values())
-    done = 1
+    done = count % 100 == 0
     if obs is not None:
         action_index = agent.choose_action(obs)
         action = ACTIONS[action_index]
@@ -94,7 +92,7 @@ def request_callback(conn):
     obs = obs_
     agent.learn()
     count += 1
-    if count % 100 == 0:
+    if done:
         agent.save_models()
 
 
@@ -119,15 +117,11 @@ def reward_event(type, data=None):
     #env.reward = t
     print(f"【reward】:change by {t}, total reward:{env.reward}")
 
-# TODO: 淘汰策略  + 自动保存
-
-
-env.request_callback = request_callback
-env.reward_event = reward_event
 
 if __name__ == "__main__":
     apis.start_server()
-
+    env.request_callback = request_callback
+    env.reward_event = reward_event
     while True:
         if env.pause_flag:
             time.sleep(0.5)
