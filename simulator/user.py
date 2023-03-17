@@ -140,6 +140,7 @@ class User():
         return fav_service
 
     def choose_service(self, env):
+        # return env.data_center.get_random_services(1)[0] # 随机选择一个服务
         ramdom_services = env.data_center.get_random_services(
             100)  # 用户会自己翻n个服务
         top_services = env.trend.top  # 从趋势中找到最热门的服务

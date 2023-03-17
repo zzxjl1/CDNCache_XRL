@@ -36,6 +36,7 @@ class Connection():
         self.es_fetching_from_remote = False  # ES是否正在从远程下载
 
         self.calc_latency()
+        self.cached_initally = self.cached
 
     def set_status(self, status):
         self.status = status

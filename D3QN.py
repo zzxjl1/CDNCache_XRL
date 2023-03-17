@@ -113,18 +113,18 @@ class D3QN:
         self.update_network_parameters()
         self.decrement_epsilon()
 
-    def save_models(self, episode):
+    def save_models(self):
         self.q_eval.save_checkpoint(
-            self.checkpoint_dir + '/D3QN_q_eval_{}.pth'.format(episode))
+            self.checkpoint_dir + '/D3QN_q_eval.pth')
         print('Saving Q_eval network successfully!')
         self.q_target.save_checkpoint(
-            self.checkpoint_dir + '/D3QN_Q_target_{}.pth'.format(episode))
+            self.checkpoint_dir + '/D3QN_Q_target.pth')
         print('Saving Q_target network successfully!')
 
     def load_models(self, episode):
         self.q_eval.load_checkpoint(
-            self.checkpoint_dir + '/D3QN_q_eval_{}.pth'.format(episode))
+            self.checkpoint_dir + '/D3QN_q_eval.pth')
         print('Loading Q_eval network successfully!')
         self.q_target.load_checkpoint(
-            self.checkpoint_dir + '/D3QN_Q_target_{}.pth'.format(episode))
+            self.checkpoint_dir + '/D3QN_Q_target.pth')
         print('Loading Q_target network successfully!')

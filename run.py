@@ -57,7 +57,7 @@ obs_dim = 22
 # agent = Agent(gamma=0.99, n_actions=len(ACTIONS), epsilon=1.0,
 #              batch_size=64, input_dims=[obs_dim])
 agent = D3QN(alpha=0.0003, state_dim=obs_dim, action_dim=len(ACTIONS),
-             fc1_dim=256, fc2_dim=256, ckpt_dir="/models", gamma=0.99, tau=0.005, epsilon=1.0,
+             fc1_dim=256, fc2_dim=256, ckpt_dir="./models", gamma=0.99, tau=0.005, epsilon=1.0,
              eps_end=0.05, eps_dec=5e-4, max_size=1000000, batch_size=64)
 
 count = 0
@@ -94,8 +94,8 @@ def request_callback(conn):
     obs = obs_
     agent.learn()
     count += 1
-    # if count % 100 == 0:
-    #    agent.save_models(count)
+    if count % 100 == 0:
+        agent.save_models()
 
 
 def reward_event(type, data=None):
