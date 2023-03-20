@@ -4,7 +4,7 @@ from .trend import Trend
 from .remote import DataCenter
 from .edge import EdgeServer
 from .user import User
-from .config import SERVICE_COUNT, EDGE_SERVER_COUNT, USER_COUNT
+from .config import SERVICE_COUNT, EDGE_SERVER_COUNT, USER_COUNT, NEW_SERVICE_UPLOAD_PROBABILITY, MAKE_TREND_PROBABILITY
 import random
 
 fake = Faker()
@@ -14,7 +14,13 @@ class Environment():
     def reward_event(self, t, d=None):  # 奖励事件回调函数
         pass
 
+    def cache_miss_callback(self, connection):  # 缓存未命中回调函数
+        pass
+
     def request_callback(self, connection):  # 请求回调函数
+        pass
+
+    def service_maintainance_callback(self, service):  # 服务维护回调函数
         pass
 
     def __init__(self):
@@ -48,7 +54,7 @@ class Environment():
 
     def make_trend(self, n=None):
         """人为造势"""
-        possibility = 1e-4
+        possibility = MAKE_TREND_PROBABILITY
         if random.random() > possibility:
             return
 
@@ -67,7 +73,7 @@ class Environment():
         if self.timestamp % 100 == 0:
             print(f"Timestamp: {self.timestamp} Millisecond")
 
-        if random.random() < 1e-3:  # 一定概率有新服务上传
+        if random.random() < NEW_SERVICE_UPLOAD_PROBABILITY:  # 一定概率有新服务上传
             new_upload_num = random.randint(0, 10)
             for _ in range(new_upload_num):
                 self.data_center.add_service()  # 新服务诞生

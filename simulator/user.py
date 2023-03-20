@@ -2,7 +2,7 @@ from utils import calc_distance
 import random
 from faker import Faker
 import numpy as np
-from .config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG
+from .config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, USER_CHANGE_FAVOR_PROBABILITY, ENABLE_SLEEP
 from .connection import Connection
 from utils import SEC2MS
 
@@ -23,7 +23,6 @@ class User():
         self.bandwidth = round(random.uniform(20, 100), 2)  # 用户带宽（mB/s）
         self.sleep_remaining = 0  # 睡眠剩余时间
         self.favor_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述偏好
-        self.change_favor_posssibility = 1e-5  # 用户改变偏好的概率
 
         self.history = []  # 已经看过的 [IDS]
         self.connection = None  # 建立的连接
@@ -90,7 +89,7 @@ class User():
         self.connection.tick(env)
 
     def sleep(self):
-        if DEBUG:  # 为了方便DEBUG
+        if not ENABLE_SLEEP:  # 为了方便DEBUG
             return
         self.sleep_remaining = int(random.uniform(0, 5)*SEC2MS)
         print(
@@ -104,7 +103,7 @@ class User():
 
     def change_favor(self):
         """模拟一点点改变偏好"""
-        if random.random() > self.change_favor_posssibility:  # 概率
+        if random.random() > USER_CHANGE_FAVOR_PROBABILITY:  # 概率
             return
 
         self.favor_vector += np.random.uniform(

@@ -59,7 +59,6 @@ class D3QN:
                                    max_size=max_size, batch_size=batch_size)
 
         self.update_network_parameters(tau=1.0)
-        self.load_models()
 
     def update_network_parameters(self, tau=None):
         if tau is None:

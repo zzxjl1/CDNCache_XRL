@@ -1,7 +1,7 @@
 import uuid
 import random
 from utils import calc_distance, add_connection_history, calc_request_frequency, pop_expired_connection_history, GB2MB, TB2GB, SEC2MS, MIN2SEC
-from .config import CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG
+from .config import CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, PRINT_ES_STATUS
 
 
 class EdgeServer():
@@ -123,28 +123,19 @@ class EdgeServer():
         self.cache[level].pop(0)
         print(f"【缓存警告】{self} 的 {level} CACHE 已满，正在删除最不常请求的服务！")
 
-    def add_to_cache(self, env, service, level, overwrite=False):
-
-        if service.size > self.get_storage_size(level)*GB2MB:
-            env.reward_event("CACHE_FULL")
-            print(f"【容量警告】{service} 超出 {self} 的 {level} CACHE 最大容量")
-            return
+    def add_to_cache(self, env, service, level):
 
         if self.exceed_size_limit_with_service_added(service, level):
             print(f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}")
-            if overwrite:
-                self.pop_least_frequently_requested(level)
-                self.add_to_cache(env, service, level, overwrite)
-            else:
-                env.reward_event("CACHE_FULL")
-                return
+            env.reward_event("CACHE_FULL")
+            return
 
         if self.has_cache(service):  # 如果已经在缓存中
             already_in_cache_level = self.get_cache_level(service)
             if already_in_cache_level == level:  # 如果已经在缓存中的位置和要添加的位置一样
                 print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
                 env.reward_event("CACHE_DUPLICATE")
-
+                return
             else:  # 如果已经在缓存中的位置和要添加的位置不一样
                 print(
                     f"{service}已经在 {self} 的 {already_in_cache_level} CACHE 中，正在将其移动到 {level} CACHE")
@@ -211,7 +202,7 @@ class EdgeServer():
         # if random.random() < 1e-8:
         #    self.faulty = True
 
-        if random.random() < 1e-5:
+        if PRINT_ES_STATUS:
             print(f"【ES状态】{self}: {self.conn_num}/{self.max_conn} connections, {self.load*100:.2f}% load, {self.request_frequency:.2f} req/s, estimated network speed {self.estimated_network_speed:.2f} mB/s, {self.free_storage_size('L1'):.2f} mB free in L1, {self.free_storage_size('L2'):.2f} mB free in L2, {self.free_storage_size('L3'):.2f} mB free in L3, {len(self.services_to_fetch)} 个服务正在回源")
 
     def connect(self, conn) -> bool:

@@ -2,7 +2,7 @@ from faker import Faker
 from utils import add_connection_history, calc_request_frequency, pop_expired_connection_history, GB2MB
 import random
 import numpy as np
-from .config import FEATURE_VECTOR_SIZE
+from .config import FEATURE_VECTOR_SIZE, SERVICE_CHARM_ABRUPT_CHANGE_PROBABILITY, SERVICE_CHARM_CAUSAL_CHANGE_PROBABILITY, ENABLE_CHARM_CHANGE
 
 fake = Faker()
 
@@ -30,15 +30,13 @@ class Service():
             self.request_history.pop(0)
 
     def causal_change(self):
-        change_possibility = 1e-3
-        if random.random() > change_possibility:
+        if random.random() > SERVICE_CHARM_CAUSAL_CHANGE_PROBABILITY:
             return
         bias = random.uniform(-0.2, 0.2)
         self.charm += bias
 
     def abrupt_change(self):
-        change_possibility = 1e-5
-        if random.random() > change_possibility:
+        if random.random() > SERVICE_CHARM_ABRUPT_CHANGE_PROBABILITY:
             return
         bias = random.uniform(1, 10) * random.choice([1, -1])
         self.charm += bias
@@ -54,9 +52,11 @@ class Service():
         return calc_request_frequency(self.request_history)
 
     def tick(self, env):
-        self.causal_change()
-        self.abrupt_change()
+        if ENABLE_CHARM_CHANGE:
+            self.causal_change()
+            self.abrupt_change()
         pop_expired_connection_history(self.request_history, env)
+        env.service_maintainance_callback(self)
 
     def show(self) -> str:
         res = f"Service id: {self.id}\n"
