@@ -1,4 +1,5 @@
 from D3QN import D3QN
+import os
 
 
 class CacheAgent():
@@ -6,12 +7,13 @@ class CacheAgent():
         self.obs_dim = obs_dim
         self.actions = ["IDLE", "L1", "L2", "L3"]
         self.action_dim = len(self.actions)
+        self.save_dir = "./models/cache_agent"
         self.agent = D3QN(alpha=0.0003,
                           state_dim=self.obs_dim,
                           action_dim=self.action_dim,
                           fc1_dim=256,
                           fc2_dim=256,
-                          ckpt_dir="./models/cache_agent",
+                          ckpt_dir=self.save_dir,
                           gamma=0.99,
                           tau=0.005,
                           epsilon=1.0,
@@ -32,6 +34,9 @@ class CacheAgent():
         self.agent.learn()
 
     def save(self):
+        # create dir if path not exists
+        if os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
         self.agent.save_models()
 
     def load(self):
@@ -105,12 +110,13 @@ class MaintainanceAgent():
         self.obs_dim = obs_dim
         self.actions = ["PRESERVE", "DELETE"]
         self.action_dim = len(self.actions)
+        self.save_dir = "./models/maintainance_agent"
         self.agent = D3QN(alpha=0.0003,
                           state_dim=self.obs_dim,
                           action_dim=self.action_dim,
                           fc1_dim=256,
                           fc2_dim=256,
-                          ckpt_dir="./models/maintainance_agent",
+                          ckpt_dir=self.save_dir,
                           gamma=0.99,
                           tau=0.005,
                           epsilon=1.0,
@@ -129,7 +135,42 @@ class MaintainanceAgent():
         self.agent.learn()
 
     def save(self):
+        # create dir if path not exists
+        if os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
         self.agent.save_models()
 
     def load(self):
         self.agent.load_models()
+
+    def generate_observation(self, es, service):
+        result = {
+            # "is_faulty": es.faulty,  # ES服务器是否故障
+            # L1剩余空间百分比
+            "L1_free_space_ratio": es.free_storage_size("L1")/es.get_storage_size("L1"),
+            # L2剩余空间百分比
+            "L2_free_space_ratio": es.free_storage_size("L2")/es.get_storage_size("L2"),
+            # L3剩余空间百分比
+            "L3_free_space_ratio": es.free_storage_size("L3")/es.get_storage_size("L3"),
+            # 服务大小与L1总空间的比例
+            "service_size_ratio_L1": service.size/es.get_storage_size("L1"),
+            # 服务大小与L2总空间的比例
+            "service_size_ratio_L2": service.size/es.get_storage_size("L2"),
+            # 服务大小与L3总空间的比例
+            "service_size_ratio_L3": service.size/es.get_storage_size("L3"),
+            "service_charm": service.charm,  # 服务的魅力值
+            "service_request_frequency": service.request_frequency,  # 服务的短期被请求频率
+        }
+        assert len(result) == self.obs_dim
+        return list(result.items())
+
+    def execute_action(self, es, service, action_index):
+        action = self.actions[action_index]
+        if action == "PRESERVE":
+            pass
+        elif action == "DELETE":
+            es.delete_from_cache(service)
+            print(f"【淘汰缓存】{service} 从 {es} 被淘汰")
+
+    def calc_reward(self):
+        pass

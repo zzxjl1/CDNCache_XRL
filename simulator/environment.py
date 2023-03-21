@@ -20,7 +20,7 @@ class Environment():
     def request_callback(self, connection):  # 请求回调函数
         pass
 
-    def service_maintainance_callback(self, service):  # 服务维护回调函数
+    def service_maintainance_callback(self, es, service):  # 服务维护回调函数
         pass
 
     def __init__(self):

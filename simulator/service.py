@@ -56,7 +56,6 @@ class Service():
             self.causal_change()
             self.abrupt_change()
         pop_expired_connection_history(self.request_history, env)
-        env.service_maintainance_callback(self)
 
     def show(self) -> str:
         res = f"Service id: {self.id}\n"

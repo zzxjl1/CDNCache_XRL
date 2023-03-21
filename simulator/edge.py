@@ -95,7 +95,7 @@ class EdgeServer():
 
     def get_storage_size(self, level):
         index = list(self.cache.keys()).index(level)
-        return self.storage_size[index]
+        return self.storage_size[index]*GB2MB
 
     def storage_used(self, level):
         used = 0
@@ -106,7 +106,7 @@ class EdgeServer():
     def free_storage_size(self, level=None):
         if level is None:
             return [self.free_storage_size(level) for level in self.cache.keys()]
-        total = self.get_storage_size(level)*GB2MB
+        total = self.get_storage_size(level)
         return total-self.storage_used(level)
 
     def fetch_from_datacenter_speed(self):
@@ -114,7 +114,7 @@ class EdgeServer():
         return network_speed  # 每秒的速度
 
     def exceed_size_limit_with_service_added(self, service, level):
-        return self.storage_used(level)+service.size > self.get_storage_size(level)*GB2MB
+        return self.storage_used(level)+service.size > self.get_storage_size(level)
 
     def pop_least_frequently_requested(self, level):
         if len(self.cache[level]) == 0:
@@ -196,9 +196,14 @@ class EdgeServer():
     def request_frequency(self):
         return calc_request_frequency(self.connection_history)
 
+    def maintainance(self, env):
+        for level, services in self.cache.items():
+            for service in services:
+                env.service_maintainance_callback(self, service)
+
     def tick(self, env):
         pop_expired_connection_history(self.connection_history, env)
-
+        self.maintainance(env)
         # if random.random() < 1e-8:
         #    self.faulty = True
 

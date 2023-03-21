@@ -2,9 +2,10 @@ import time
 import apis
 from simulator import env
 from agents import MaintainanceAgent, CacheAgent
-
+from simulator.config import ENABLE_VISUALIZATION
 
 cache_agent = CacheAgent(obs_dim=22)
+maintainance_agent = MaintainanceAgent(obs_dim=8)
 
 
 def request_callback(conn):
@@ -22,8 +23,11 @@ def cache_miss_callback(conn):
     cache_agent.learn()
 
 
-def service_maintainance_callback(service):
-    print("service_maintainance_callback called")
+def service_maintainance_callback(es, service):
+    print("service_maintainance_callback called", es, service)
+    obs = maintainance_agent.generate_observation(es, service)
+    print(obs)
+    action_index = maintainance_agent.choose_action(obs)
 
 
 def reward_event(type, data=None):
@@ -31,7 +35,8 @@ def reward_event(type, data=None):
 
 
 if __name__ == "__main__":
-    apis.start_server()
+    if ENABLE_VISUALIZATION:
+        apis.start_server()
     env.request_callback = request_callback
     env.cache_miss_callback = cache_miss_callback
     env.reward_event = reward_event
