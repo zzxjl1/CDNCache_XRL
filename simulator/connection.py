@@ -43,17 +43,12 @@ class Connection():
         print(
             f"connection from {self.user} to {self.source} {status}!")
 
-    def send_reward(self, env):
-        t = "CACHE_HIT" if self.cached else "CACHE_MISS"
-        d = self.cache_level
-        env.cache_event(t, d)
-
     def start(self, env) -> bool:
         self.set_status(ConnectionStatus.PENDING)
         flag = self.source.connect(self)
         self.service.add_history(self)
         env.request_callback(self)
-        self.send_reward(env)
+        env.cache_event("CACHE_HIT" if self.cached else "CACHE_MISS")
         if not flag:
             self.set_status(ConnectionStatus.FAILED)
             env.cache_event("FAILED_TO_CONNECT")
@@ -68,7 +63,7 @@ class Connection():
 
     def print_download_percentage(self, master, file, now, total, speed, str=""):
         percentage = round(now/total*100)
-        if PRINT_DOWNLOAD_PERCENTAGE:
+        if PRINT_DOWNLOAD_PERCENTAGE and random.random() < 1e-4:
             print(
                 f"{str}{master} downloading {file}, [{now:.2f}MB/{total}MB],{speed:.2f}MB/S, {percentage}%")
 

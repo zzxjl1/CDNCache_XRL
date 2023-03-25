@@ -1,7 +1,7 @@
 LATEST_VERSION = 5.0  # 最新版本号
 SERVICE_COUNT = 1e4  # 服务数量
 EDGE_SERVER_COUNT = 1  # 边缘服务器数量
-USER_COUNT = 1  # 用户数量
+USER_COUNT = 5  # 用户数量
 FEATURE_VECTOR_SIZE = 256  # 特征向量维度
 CANVAS_SIZE_X = 300  # 画布大小X轴(KM)
 CANVAS_SIZE_Y = 100  # 画布大小Y轴(KM)
@@ -16,5 +16,5 @@ MAKE_TREND_PROBABILITY = 1e-4
 
 DEBUG = True  # 是否开启调试模式(提高带宽)
 ENABLE_VISUALIZATION = False  # 是否启动可视化
-PRINT_DOWNLOAD_PERCENTAGE = False  # 打印下载进度
+PRINT_DOWNLOAD_PERCENTAGE = True  # 打印下载进度
 PRINT_ES_STATUS = False  # 打印ES状态

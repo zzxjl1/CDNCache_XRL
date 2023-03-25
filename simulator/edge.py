@@ -58,7 +58,7 @@ class EdgeServer():
         self.connection_history = []  # 连接历史
 
         if DEBUG:
-            self.bandwidth *= 10
+            self.bandwidth *= 100
 
     @property
     def conn_num(self):
@@ -73,6 +73,12 @@ class EdgeServer():
         if self.conn_num == 0:
             return self.bandwidth
         return self.bandwidth/self.conn_num
+
+    @property
+    def cache_miss_rate(self):
+        if len(self.connection_history) == 0:
+            return 0
+        return len([c for c in self.connection_history if c.cached_initally == False])/len(self.connection_history)
 
     def fetch_from_datacenter(self, service):
         if self.is_caching_service(service):
@@ -128,14 +134,15 @@ class EdgeServer():
         if self.exceed_size_limit_with_service_added(service, level):
             print(f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}")
             env.cache_event("CACHE_FULL")
-            return
+            self.maintainance(env, level)
+            return False
 
         if self.has_cache(service):  # 如果已经在缓存中
             already_in_cache_level = self.get_cache_level(service)
             if already_in_cache_level == level:  # 如果已经在缓存中的位置和要添加的位置一样
                 print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
                 env.cache_event("CACHE_DUPLICATE")
-                return
+                return False
             else:  # 如果已经在缓存中的位置和要添加的位置不一样
                 print(
                     f"{service}已经在 {self} 的 {already_in_cache_level} CACHE 中，正在将其移动到 {level} CACHE")
@@ -144,6 +151,7 @@ class EdgeServer():
 
         self.cache[level].append(service)
         print(f"【添加缓存】 {self} 存储 {service} 到 {level} CACHE")
+        return True
 
     def delete_from_cache(self, service):
         for level in self.cache.keys():
@@ -196,14 +204,12 @@ class EdgeServer():
     def request_frequency(self):
         return calc_request_frequency(self.connection_history)
 
-    def maintainance(self, env):
-        for level, services in self.cache.items():
-            for service in services:
-                env.service_maintainance_callback(self, service)
+    def maintainance(self, env, level):
+        for service in self.cache[level]:
+            env.service_maintainance_callback(self, service)
 
     def tick(self, env):
         pop_expired_connection_history(self.connection_history, env)
-        self.maintainance(env)
         # if random.random() < 1e-8:
         #    self.faulty = True
 

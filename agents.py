@@ -85,29 +85,31 @@ class CacheAgent():
             # 该ES服务器被请求的频率
             "ES_request_frequency": conn.source.request_frequency,
         }
+        print(data)
         result = list(data.values())
         assert len(result) == self.obs_dim
         return result
 
     def execute_action(self, env, conn, action_index):
         action = self.actions[action_index]
+        success = True
         if action == "IDLE":
             pass
         else:
-            conn.source.add_to_cache(env, conn.service, action)
+            success = conn.source.add_to_cache(env, conn.service, action)
+        return action, success
 
-    def calc_reward(self, env, conn):
+    def calc_reward(self, env, conn, action, success):
         # TODO:设计奖励函数
-        if conn.source.faulty:
-            return -1000
-        if conn.source.is_caching_service(conn.service):
+        if not success:
+            return -100
+        if action != "IDLE":
             return 1
-        else:
-            return -1
+        return 100
 
 
 class MaintainanceAgent():
-    def __init__(self, obs_dim) -> None:
+    def __init__(self, obs_dim=4) -> None:
         self.obs_dim = obs_dim
         self.actions = ["PRESERVE", "DELETE"]
         self.action_dim = len(self.actions)
@@ -148,22 +150,28 @@ class MaintainanceAgent():
         self.agent.load_models()
 
     def generate_observation(self, es, service):
+        cache_level = es.get_cache_level(service)
         result = {
             # "is_faulty": es.faulty,  # ES服务器是否故障
-            # L1剩余空间百分比
-            "L1_free_space_ratio": es.free_storage_size("L1")/es.get_storage_size("L1"),
-            # L2剩余空间百分比
-            "L2_free_space_ratio": es.free_storage_size("L2")/es.get_storage_size("L2"),
-            # L3剩余空间百分比
-            "L3_free_space_ratio": es.free_storage_size("L3")/es.get_storage_size("L3"),
-            # 服务大小与L1总空间的比例
-            "service_size_ratio_L1": service.size/es.get_storage_size("L1"),
-            # 服务大小与L2总空间的比例
-            "service_size_ratio_L2": service.size/es.get_storage_size("L2"),
-            # 服务大小与L3总空间的比例
-            "service_size_ratio_L3": service.size/es.get_storage_size("L3"),
+            # cache剩余空间百分比
+            "free_space_ratio": es.free_storage_size(cache_level)/es.get_storage_size(cache_level),
+            # 服务大小与总空间的比例
+            "service_size_ratio_L1": service.size/es.get_storage_size(cache_level),
             "service_charm": service.charm,  # 服务的魅力值
             "service_request_frequency": service.request_frequency,  # 服务的短期被请求频率
+        }
+        print(result)
+        assert len(result) == self.obs_dim
+        return list(result.values())
+
+    def generate_observation_next(self, cache_level, es):
+        result = {
+            # cache剩余空间百分比
+            "free_space_ratio": es.free_storage_size(cache_level)/es.get_storage_size(cache_level),
+            # 服务大小与总空间的比例
+            "service_size_ratio_L1": 0,
+            "service_charm": 0,  # 服务的魅力值
+            "service_request_frequency": 0,  # 服务的短期被请求频率
         }
         print(result)
         assert len(result) == self.obs_dim
@@ -174,9 +182,12 @@ class MaintainanceAgent():
         if action == "PRESERVE":
             pass
         elif action == "DELETE":
+            print(f"【决定淘汰缓存】{service} 将从 {es} 中被淘汰")
             es.delete_from_cache(service)
-            print(f"【淘汰缓存】{service} 从 {es} 被淘汰")
+        return action
 
-    def calc_reward(self):
+    def calc_reward(self, es, service, action):
         # 奖励函数，考虑 缓存命中率、动作的累计成本代价、存储空间利用率、QOS(下载速度、响应时间、剩余连接数)、负载均衡性、缓存级别
-        pass
+        cost = -1 if action == "DELETE" else 0
+        cache_hit_rate = 1-es.cache_miss_rate
+        return cache_hit_rate + cost
