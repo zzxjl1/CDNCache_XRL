@@ -46,7 +46,7 @@ class Connection():
     def send_reward(self, env):
         t = "CACHE_HIT" if self.cached else "CACHE_MISS"
         d = self.cache_level
-        env.reward_event(t, d)
+        env.cache_event(t, d)
 
     def start(self, env) -> bool:
         self.set_status(ConnectionStatus.PENDING)
@@ -56,7 +56,7 @@ class Connection():
         self.send_reward(env)
         if not flag:
             self.set_status(ConnectionStatus.FAILED)
-            env.reward_event("FAILED_TO_CONNECT")
+            env.cache_event("FAILED_TO_CONNECT")
         return flag
 
     def close(self):

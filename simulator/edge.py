@@ -127,14 +127,14 @@ class EdgeServer():
 
         if self.exceed_size_limit_with_service_added(service, level):
             print(f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}")
-            env.reward_event("CACHE_FULL")
+            env.cache_event("CACHE_FULL")
             return
 
         if self.has_cache(service):  # 如果已经在缓存中
             already_in_cache_level = self.get_cache_level(service)
             if already_in_cache_level == level:  # 如果已经在缓存中的位置和要添加的位置一样
                 print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
-                env.reward_event("CACHE_DUPLICATE")
+                env.cache_event("CACHE_DUPLICATE")
                 return
             else:  # 如果已经在缓存中的位置和要添加的位置不一样
                 print(

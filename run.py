@@ -15,7 +15,7 @@ def request_callback(conn):
 def cache_miss_callback(conn):
     obs = cache_agent.generate_observation(env, conn)
     action_index = cache_agent.choose_action(obs)
-    print("【action】: ", cache_agent.actions[action_index])
+    print("【cache action】: ", cache_agent.actions[action_index])
     cache_agent.execute_action(env, conn, action_index)
     reward = cache_agent.calc_reward(env, conn)
     obs_next = cache_agent.generate_observation(env, conn)
@@ -24,14 +24,19 @@ def cache_miss_callback(conn):
 
 
 def service_maintainance_callback(es, service):
-    print("service_maintainance_callback called", es, service)
+    #print("service_maintainance_callback called", es, service)
     obs = maintainance_agent.generate_observation(es, service)
-    print(obs)
     action_index = maintainance_agent.choose_action(obs)
+    print("【maintainance action】: ", maintainance_agent.actions[action_index])
+    maintainance_agent.execute_action(es, service, action_index)
+    reward = maintainance_agent.calc_reward()
+    obs_next = maintainance_agent.generate_observation(es, service)
+    maintainance_agent.remember(obs, action_index, reward, obs_next)
+    maintainance_agent.learn()
 
 
-def reward_event(type, data=None):
-    print(f"reward_event called: {type}, data:{data}")
+def cache_event(type, data=None):
+    print(f"【cache event】 : {type}, data:{data}")
 
 
 if __name__ == "__main__":
@@ -39,7 +44,7 @@ if __name__ == "__main__":
         apis.start_server()
     env.request_callback = request_callback
     env.cache_miss_callback = cache_miss_callback
-    env.reward_event = reward_event
+    env.cache_event = cache_event
     env.service_maintainance_callback = service_maintainance_callback
     while True:
         if env.pause_flag:

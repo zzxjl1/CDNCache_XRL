@@ -11,7 +11,7 @@ fake = Faker()
 
 
 class Environment():
-    def reward_event(self, t, d=None):  # 奖励事件回调函数
+    def cache_event(self, t, d=None):  # 奖励事件回调函数
         pass
 
     def cache_miss_callback(self, connection):  # 缓存未命中回调函数

@@ -29,6 +29,7 @@ class CacheAgent():
     def remember(self, state, action, reward, state_):
         done = self.count % 100 == 0
         self.agent.remember(state, action, reward, state_, done)
+        self.count += 1
 
     def learn(self):
         self.agent.learn()
@@ -124,12 +125,15 @@ class MaintainanceAgent():
                           eps_dec=5e-4,
                           max_size=1000000,
                           batch_size=128)
+        self.count = 0
 
     def choose_action(self, observation):
         return self.agent.choose_action(observation)
 
-    def remember(self, state, action, reward, state_, done):
+    def remember(self, state, action, reward, state_):
+        done = self.count % 100 == 0
         self.agent.remember(state, action, reward, state_, done)
+        self.count += 1
 
     def learn(self):
         self.agent.learn()
@@ -161,8 +165,9 @@ class MaintainanceAgent():
             "service_charm": service.charm,  # 服务的魅力值
             "service_request_frequency": service.request_frequency,  # 服务的短期被请求频率
         }
+        print(result)
         assert len(result) == self.obs_dim
-        return list(result.items())
+        return list(result.values())
 
     def execute_action(self, es, service, action_index):
         action = self.actions[action_index]
@@ -173,4 +178,5 @@ class MaintainanceAgent():
             print(f"【淘汰缓存】{service} 从 {es} 被淘汰")
 
     def calc_reward(self):
+        # 奖励函数，考虑 缓存命中率、动作的累计成本代价、存储空间利用率、QOS(下载速度、响应时间、剩余连接数)、负载均衡性、缓存级别
         pass
