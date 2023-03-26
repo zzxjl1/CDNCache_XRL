@@ -2,7 +2,7 @@ import random
 from .edge import EdgeServer
 from .service import Service
 from utils import SEC2MS, calc_distance
-from .config import DEBUG, PRINT_DOWNLOAD_PERCENTAGE
+from .config import DEBUG, PRINT_DOWNLOAD_PERCENTAGE, STEPPING
 from enum import Enum
 
 
@@ -59,11 +59,13 @@ class Connection():
 
     def calc_latency(self):
         """计算各种延迟"""
+        if DEBUG:
+            return
         self.delays["propagation_delay"] = random.uniform(1, 10)  # ms
 
     def print_download_percentage(self, master, file, now, total, speed, str=""):
         percentage = round(now/total*100)
-        if PRINT_DOWNLOAD_PERCENTAGE and random.random() < 1e-4:
+        if PRINT_DOWNLOAD_PERCENTAGE:
             print(
                 f"{str}{master} downloading {file}, [{now:.2f}MB/{total}MB],{speed:.2f}MB/S, {percentage}%")
 
@@ -79,6 +81,8 @@ class Connection():
             speed = self.user.bandwidth
             # 加入随机因素
         speed *= random.uniform(0.8, 1.2)
+        if DEBUG:
+            speed *= 1000
         return speed
 
     def transmit_from_datacenter_to_es(self, env):
@@ -93,7 +97,7 @@ class Connection():
         speed = self.source.fetch_from_datacenter_speed()
         # 加入随机因素
         speed *= random.uniform(0.8, 1.2)
-        self.es_fetch_remaining_size -= speed/SEC2MS
+        self.es_fetch_remaining_size -= speed*STEPPING/SEC2MS
         self.print_download_percentage(master=self.source,
                                        file=self.service,
                                        now=self.service.size -
@@ -102,18 +106,18 @@ class Connection():
                                        speed=speed,
                                        str="【ES回源中】")
         if self.es_fetch_remaining_size <= 0:
+            env.cache_miss_callback(self)  # 注意：必须在状态改变之前调用，否则观测值会出错
             self.cached = True
             self.cache_level = "L1"
             self.es_fetching_from_remote = False
             self.es_fetch_remaining_size = 0
             self.source.finish_fetch_from_datacenter(self.service)
-            env.cache_miss_callback(self)
 
     def transmit_from_es_to_user(self, env):
         if self.es_fetching_from_remote:
             return
         download_speed = self.calc_download_speed()  # mB/s 上一个时间片下载了多大
-        self.downloaded += download_speed/SEC2MS
+        self.downloaded += download_speed*STEPPING/SEC2MS
         self.print_download_percentage(master=self.user,
                                        file=self.service,
                                        now=self.downloaded,

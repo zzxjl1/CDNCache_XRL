@@ -127,8 +127,8 @@
             user_sprite.scale.set(0.1);
             user_sprite.position.set(location[0], location[1]);
 
-            //让不idle的用户闪烁
-            if (user.is_idle) {
+            //让休眠的用户变灰
+            if (user.sleep_remaining > 0) {
                 user_sprite.alpha = 0.2;
                 user_sprite.tint = 0x000000;
             }

@@ -40,9 +40,9 @@ def calc_distance(a, b):
     return distance
 
 
-def add_connection_history(connection_history, conn, max_len=20):
+def add_connection_history(connection_history, conn, max_len=10):
     connection_history.append(conn)
-    if len(connection_history) > max_len:  # 保留最近20次连接
+    if len(connection_history) > max_len:  # 保留最近n次连接
         connection_history.pop(0)
 
 
@@ -60,6 +60,22 @@ def pop_expired_connection_history(connection_history, env, threshold=1*MIN2SEC*
     for conn in connection_history:  # 删除超时的连接历史
         if env.now()-conn.birth > threshold:
             connection_history.remove(conn)
+
+
+def overall_cache_miss_rate(env):
+    """计算整体缓存未命中率"""
+    t = [es.cache_miss_rate for es in env.edge_servers]
+    average = sum(t)/len(t)
+    return average
+
+
+def overall_storage_utilization(env):
+    """计算整体存储利用率"""
+    used, total = 0, 0
+    for es in env.edge_servers:
+        used += sum(es.storage_used())
+        total += sum(es.storage_size)*GB2MB
+    return used/total
 
 
 if __name__ == "__main__":

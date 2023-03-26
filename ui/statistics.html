@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>统计页面</title>
+</head>
+<style>
+    iframe {
+        display: block;
+        margin: 0 auto;
+        height: 20vh;
+    }
+</style>
+
+<body style="margin: 0;">
+    <br>
+    <iframe src="/curve_chart?url=get_cache_agent_reward&type=append" frameborder="0" width="100%"
+        height="100%"></iframe>
+    <iframe src="/curve_chart?url=get_maintainance_agent_reward&type=append" frameborder="0" width="100%"
+        height="100%"></iframe>
+    <iframe src="/curve_chart?url=get_overall_cache_hit_rate&type=append" frameborder="0" width="100%"
+        height="100%"></iframe>
+    <iframe src="/curve_chart?url=get_overall_storage_utilization&type=append" frameborder="0" width="100%"
+        height="100%"></iframe>
+</body>
+
+</html>

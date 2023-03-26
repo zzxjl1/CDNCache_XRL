@@ -1,10 +1,12 @@
 from alive_progress import alive_bar
 from faker import Faker
+
+from agents import CacheAgent, MaintainanceAgent
 from .trend import Trend
 from .remote import DataCenter
 from .edge import EdgeServer
 from .user import User
-from .config import SERVICE_COUNT, EDGE_SERVER_COUNT, USER_COUNT, NEW_SERVICE_UPLOAD_PROBABILITY, MAKE_TREND_PROBABILITY
+from .config import SERVICE_COUNT, EDGE_SERVER_COUNT, USER_COUNT, NEW_SERVICE_UPLOAD_PROBABILITY, MAKE_TREND_PROBABILITY, ENABLE_MAKE_TREND, ENABLE_NEW_SERVICE_UPLOAD, STEPPING
 import random
 
 fake = Faker()
@@ -35,6 +37,9 @@ class Environment():
 
         self.data_center = DataCenter(SERVICE_COUNT)  # 数据中心
 
+        self.cache_agent = CacheAgent()
+        self.maintainance_agent = MaintainanceAgent()
+
     def init_edge_servers(self):
         for _ in range(EDGE_SERVER_COUNT):
             self.edge_servers.append(EdgeServer())
@@ -54,8 +59,10 @@ class Environment():
 
     def make_trend(self, n=None):
         """人为造势"""
-        possibility = MAKE_TREND_PROBABILITY
-        if random.random() > possibility:
+        if not ENABLE_MAKE_TREND:
+            return
+
+        if random.random() > MAKE_TREND_PROBABILITY:
             return
 
         if not n:
@@ -68,16 +75,22 @@ class Environment():
             service.become_charming()
         print(f"以下{new_hot_service_num} 个服务因为人工造势火了:{new_hot_services}")
 
-    def tick(self):
-        """时钟滴答"""
-        if self.timestamp % 100 == 0:
-            print(f"Timestamp: {self.timestamp} Millisecond")
+    def upload_new_service(self):
+        if not ENABLE_NEW_SERVICE_UPLOAD:
+            return
 
         if random.random() < NEW_SERVICE_UPLOAD_PROBABILITY:  # 一定概率有新服务上传
             new_upload_num = random.randint(0, 10)
             for _ in range(new_upload_num):
                 self.data_center.add_service()  # 新服务诞生
             print(f"{new_upload_num} new services uploaded!")
+
+    def tick(self):
+        """时钟滴答"""
+        if self.timestamp % 1000 == 0:
+            print(f"Timestamp: {self.timestamp} Millisecond")
+
+        self.upload_new_service()
 
         for user in self.users:  # 刷新用户的状态
             user.tick(self)
@@ -91,7 +104,7 @@ class Environment():
         self.make_trend()
         self.trend.tick(self)
 
-        self.timestamp += 1
+        self.timestamp += STEPPING
 
     def now(self):
         return self.timestamp

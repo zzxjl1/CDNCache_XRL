@@ -18,16 +18,11 @@ class Service():
         self.name = name if name else fake.url()
         #self.version = generate_version()
 
-        self.size = round(random.uniform(0.5, 10)*GB2MB)
+        self.size = round(random.uniform(0.2, 20)*GB2MB)
         self.feature_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述服务的特征
         # 服务的魅力值(标准正态分布)
         self.charm = round(abs(np.random.standard_normal(1)[0]), 2)
         self.request_history = []  # 请求历史
-
-    def add_history(self, history):
-        self.request_history.append(history)
-        if len(self.request_history) > 20:  # 保留最近20次连接
-            self.request_history.pop(0)
 
     def causal_change(self):
         if random.random() > SERVICE_CHARM_CAUSAL_CHANGE_PROBABILITY:

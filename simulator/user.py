@@ -29,9 +29,6 @@ class User():
 
         self.sleep()
 
-        if DEBUG:
-            self.bandwidth *= 100
-
     def find_nearby_servers(self, env):
 
         nearby_servers = []

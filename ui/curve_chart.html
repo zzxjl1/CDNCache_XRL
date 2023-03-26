@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Charts</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.2/echarts.min.js"></script>
+</head>
+
+<body style="margin: 0;">
+    <div id="main" style="width: 100vw;height:100vh;"></div>
+    <script type="text/javascript">
+        //封装一下ajax get
+        function ajaxGet(url, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    callback(data);
+                }
+            }
+            xhr.send();
+        }
+
+        //解析url参数
+        function getUrlParam(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null) return unescape(r[2]); return null;
+        }
+
+        function parse_name(url) {
+            // '/get_cache_agent_reward' -> 'Cache Agent Reward'
+            let temp = url.split('_');
+            for (let i = 0; i < temp.length; i++) {
+                // ['get', 'cache', 'agent', 'reward'] -> ['Get', 'Cache', 'Agent', 'Reward']
+                temp[i] = temp[i].charAt(0).toUpperCase() + temp[i].slice(1);
+            }
+            // remove 'Get'
+            temp.shift();
+            var name = temp.join(' ');
+            return name;
+        }
+
+        let result = [];
+        let url = '/' + getUrlParam('url');
+        let name = parse_name(url);
+        let type = getUrlParam('type');
+
+        function get_data() {
+            ajaxGet(url, function (data) {
+                result = [];
+                for (let i = 0; i < data.length; i++) {
+                    result.push(
+                        {
+                            value: [i, data[i]]
+                        });
+                }
+                myChart.setOption({
+                    series: [
+                        {
+                            data: result
+                        }
+                    ]
+                });
+            });
+        }
+
+        function append_data() {
+            ajaxGet(url, function (data) {
+
+                result.push(
+                    {
+                        value: [result.length, data]
+                    });
+
+                myChart.setOption({
+                    series: [
+                        {
+                            data: result
+                        }
+                    ]
+                });
+            });
+        }
+
+
+        var chartDom = document.getElementById('main');
+        var myChart = echarts.init(chartDom);
+
+        var option = {
+            title: {
+                text: name,
+                left: 'center',
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    params = params[0];
+                    return (
+                        params.value[1].toString()
+                    );
+                },
+                axisPointer: {
+                    animation: false
+                }
+            },
+            xAxis: {
+                type: 'value',
+                splitLine: {
+                    show: false
+                }
+            },
+            yAxis: {
+                type: 'value',
+                boundaryGap: [0, '100%'],
+                splitLine: {
+                    show: false
+                }
+            },
+            series: [
+                {
+                    type: 'line',
+                    showSymbol: false,
+                    data: result
+                }
+            ]
+        };
+
+        setInterval(function () {
+            switch (type) {
+                case 'append':
+                    append_data();
+                    break;
+                case 'get':
+                    get_data();
+                    break;
+                default:
+                    break;
+            }
+        }, 1000);
+
+        myChart.setOption(option);
+    </script>
+</body>
+
+</html>

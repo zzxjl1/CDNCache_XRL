@@ -57,9 +57,6 @@ class EdgeServer():
         self.services_to_fetch = []  # 等待从数据中心获取的服务
         self.connection_history = []  # 连接历史
 
-        if DEBUG:
-            self.bandwidth *= 100
-
     @property
     def conn_num(self):
         return len(self.conns)+len(self.services_to_fetch)
@@ -103,7 +100,9 @@ class EdgeServer():
         index = list(self.cache.keys()).index(level)
         return self.storage_size[index]*GB2MB
 
-    def storage_used(self, level):
+    def storage_used(self, level=None):
+        if level is None:
+            return [self.storage_used(level) for level in self.cache.keys()]
         used = 0
         for service in self.cache[level]:
             used += service.size
@@ -117,6 +116,8 @@ class EdgeServer():
 
     def fetch_from_datacenter_speed(self):
         network_speed = self.estimated_network_speed
+        if DEBUG:
+            network_speed *= 1000
         return network_speed  # 每秒的速度
 
     def exceed_size_limit_with_service_added(self, service, level):
@@ -129,13 +130,31 @@ class EdgeServer():
         self.cache[level].pop(0)
         print(f"【缓存警告】{self} 的 {level} CACHE 已满，正在删除最不常请求的服务！")
 
+    def get_level_index(self, level):
+        return list(self.cache.keys()).index(level)
+
     def add_to_cache(self, env, service, level):
+        if service.size > self.get_storage_size(level):
+            print(f"【超出最大容量】{service} 超出 {self} 的 {level} CACHE 最大容量！")
+            env.cache_event("CACHE_FULL")
+            return False
 
         if self.exceed_size_limit_with_service_added(service, level):
-            print(f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}")
+            print(
+                f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}，正在淘汰缓存！")
             env.cache_event("CACHE_FULL")
-            self.maintainance(env, level)
-            return False
+            attempts = 1
+            success = False
+            while attempts:
+                attempts -= 1
+                self.maintainance(env, level)
+                success = not self.exceed_size_limit_with_service_added(
+                    service, level)
+                if success:
+                    self.add_to_cache(env, service, level)
+                    break
+
+            return success
 
         if self.has_cache(service):  # 如果已经在缓存中
             already_in_cache_level = self.get_cache_level(service)
@@ -204,12 +223,19 @@ class EdgeServer():
     def request_frequency(self):
         return calc_request_frequency(self.connection_history)
 
-    def maintainance(self, env, level):
-        for service in self.cache[level]:
+    def maintainance(self, env, level=None):
+        if level is None:
+            for level in self.cache.keys():
+                self.maintainance(env, level)
+            return
+        services = self.cache[level]
+        services.sort(key=lambda s: s.request_frequency)  # 按照请求频率排序
+        for service in services:
             env.service_maintainance_callback(self, service)
 
     def tick(self, env):
         pop_expired_connection_history(self.connection_history, env)
+        # self.maintainance(env)
         # if random.random() < 1e-8:
         #    self.faulty = True
 

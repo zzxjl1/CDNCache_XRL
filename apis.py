@@ -5,6 +5,7 @@ import logging
 from simulator import env
 from simulator.config import CANVAS_SIZE_X, CANVAS_SIZE_Y
 from flask import Flask, render_template, jsonify
+from utils import overall_cache_miss_rate, overall_storage_utilization
 from threading import Thread
 
 app = Flask(__name__,
@@ -26,6 +27,16 @@ server_thread = Thread(target=app.run, kwargs={
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/curve_chart')
+def charts():
+    return render_template('curve_chart.html')
+
+
+@app.route('/statistics')
+def statistics():
+    return render_template('statistics.html')
 
 
 @app.route('/get_canvas_size')
@@ -78,6 +89,34 @@ def get_connections():
     return jsonify(result)
 
 
+@app.route('/get_cache_agent_reward')
+def get_cache_agent_reward():
+    return jsonify(
+        env.cache_agent.reward_history[-1],
+    )
+
+
+@app.route('/get_maintainance_agent_reward')
+def get_maintainance_agent_action():
+    return jsonify(
+        env.maintainance_agent.reward_history[-1],
+    )
+
+
+@app.route('/get_overall_cache_hit_rate')
+def get_overall_cache_hit_rate():
+    return jsonify(
+        1-overall_cache_miss_rate(env),
+    )
+
+
+@app.route('/get_overall_storage_utilization')
+def get_overall_storage_utilization():
+    return jsonify(
+        overall_storage_utilization(env),
+    )
+
+
 @app.route('/get_timestamp')
 def get_timestamp():
     return str(env.now())
@@ -100,6 +139,7 @@ def start_server():
     server_thread.start()
     import webbrowser
     webbrowser.open('http://localhost:5000')
+    webbrowser.open('http://localhost:5000/statistics')
 
 
 def stop_server():
