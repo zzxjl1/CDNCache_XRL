@@ -164,10 +164,10 @@
             var server_sprite = edge_servers[conn.source].sprite;
             var line = new PIXI.Graphics();
 
-            if (conn.fetching_from_remote) {
-                line.lineStyle(1, 0xFF0000, 0.5);
-            } else {
+            if (conn.cached_initally) {
                 line.lineStyle(1, 0x0000FF, 0.5);
+            } else {
+                line.lineStyle(1, 0xFF0000, 0.5);
             }
 
             line.moveTo(user_sprite.x, user_sprite.y);

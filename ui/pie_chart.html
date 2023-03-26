@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Charts</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.2/echarts.min.js"></script>
+    <script src="/global.js"></script>
+</head>
+
+<body style="margin: 0;">
+    <div id="main" style="width: 100vw;height:100vh;"></div>
+    <script type="text/javascript">
+
+        let result = [];
+        let url = '/' + getUrlParam('url');
+        let num = getUrlParam('num');
+        let name = parse_name(url);
+
+        function get_data() {
+            ajaxGet(url + "?num=" + num, function (data) {
+                result = [];
+                //遍历字典
+                for (let key in data) {
+                    result.push(
+                        {
+                            value: data[key],
+                            name: key
+                        });
+                }
+
+                myChart.setOption({
+                    series: [
+                        {
+                            data: result
+                        }
+                    ]
+                });
+            });
+        }
+
+        var chartDom = document.getElementById('main');
+        var myChart = echarts.init(chartDom);
+
+        option = {
+            title: {
+                text: name,
+                subtext: 'last ' + num + ' actions',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item'
+            },
+            series: [
+                {
+                    type: 'pie',
+                    radius: '50%',
+                    data: result,
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+
+        setInterval(function () {
+            get_data();
+        }, 1000);
+
+        myChart.setOption(option);
+    </script>
+</body>
+
+</html>

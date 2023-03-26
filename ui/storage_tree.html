@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Charts</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.2/echarts.min.js"></script>
+    <script src="/global.js"></script>
+</head>
+
+<body style="margin: 0;">
+    <div id="main" style="width: 100vw;height:100vh;"></div>
+    <script type="text/javascript">
+
+        let url = '/get_storage_tree';
+        let name = parse_name(url);
+        let id = getUrlParam('id');
+
+        var chartDom = document.getElementById('main');
+        var myChart = echarts.init(chartDom);
+
+        function get_data() {
+            ajaxGet(url + "?id=" + id, function (result) {
+
+                myChart.setOption({
+                    series: [
+                        {
+                            data: result
+                        },
+                    ]
+                });
+            });
+        }
+
+        option = {
+            title: {
+                text: name,
+                left: 'center'
+            },
+            series: [
+                {
+                    type: 'treemap',
+                    label: {
+                        show: true,
+                        formatter: '{b}'
+                    },
+                    upperLabel: {
+                        show: true,
+                        height: 30
+                    },
+                    data: [],
+
+                }
+            ],
+        };
+
+        setInterval(get_data, 1000);
+        myChart.setOption(option);
+    </script>
+</body>
+
+</html>

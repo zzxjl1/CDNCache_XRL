@@ -40,15 +40,16 @@ def calc_distance(a, b):
     return distance
 
 
-def add_connection_history(connection_history, conn, max_len=10):
+def add_connection_history(connection_history, conn, max_len=200):
     connection_history.append(conn)
     if len(connection_history) > max_len:  # 保留最近n次连接
         connection_history.pop(0)
 
 
-def calc_request_frequency(connection_history):
+def calc_request_frequency(connection_history, num=10):
     if len(connection_history) <= 1:
         return 0
+    connection_history = connection_history[-num:]
     total_time = connection_history[-1].birth - \
         connection_history[0].birth
     if total_time == 0:
@@ -56,7 +57,7 @@ def calc_request_frequency(connection_history):
     return len(connection_history)/total_time*SEC2MS
 
 
-def pop_expired_connection_history(connection_history, env, threshold=1*MIN2SEC*SEC2MS):
+def pop_expired_connection_history(connection_history, env, threshold=10*MIN2SEC*SEC2MS):
     for conn in connection_history:  # 删除超时的连接历史
         if env.now()-conn.birth > threshold:
             connection_history.remove(conn)
@@ -64,7 +65,7 @@ def pop_expired_connection_history(connection_history, env, threshold=1*MIN2SEC*
 
 def overall_cache_miss_rate(env):
     """计算整体缓存未命中率"""
-    t = [es.cache_miss_rate for es in env.edge_servers]
+    t = [es.cache_miss_rate for es in env.edge_servers.values()]
     average = sum(t)/len(t)
     return average
 
@@ -72,7 +73,7 @@ def overall_cache_miss_rate(env):
 def overall_storage_utilization(env):
     """计算整体存储利用率"""
     used, total = 0, 0
-    for es in env.edge_servers:
+    for es in env.edge_servers.values():
         used += sum(es.storage_used())
         total += sum(es.storage_size)*GB2MB
     return used/total

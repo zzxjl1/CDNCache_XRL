@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Charts</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.2/echarts.min.js"></script>
+    <script src="/global.js"></script>
+</head>
+
+<body style="margin: 0;">
+    <div id="main" style="width: 100vw;height:100vh;"></div>
+    <script type="text/javascript">
+
+        let url = '/get_storage_utilization';
+        let name = parse_name(url);
+        let id = getUrlParam('id');
+
+        var chartDom = document.getElementById('main');
+        var myChart = echarts.init(chartDom);
+
+        function get_data() {
+            ajaxGet(url + "?id=" + id, function (data) {
+
+                myChart.setOption({
+                    series: [
+                        {
+                            data: [{
+                                value: data.L1.percent,
+                                name: 'L1'
+                            }]
+                        },
+                        {
+                            data: [{
+                                value: data.L2.percent,
+                                name: 'L2'
+                            }]
+                        },
+                        {
+                            data: [{
+                                value: data.L3.percent,
+                                name: 'L3'
+                            }]
+                        }
+                    ]
+                });
+            });
+        }
+
+        // two gauges
+        var option = {
+            title: {
+                text: name,
+                left: 'center',
+            },
+            series: [
+                {
+                    type: 'gauge',
+                    center: ['25%', '55%'], // default: ['50%', '50%']
+                    radius: '50%',
+
+                    detail: {
+                        formatter: '{value}%',
+                    },
+                    data: [{
+                        value: 50,
+                        name: 'L1'
+                    }]
+                }, {
+                    type: 'gauge',
+                    center: ['75%', '55%'], // default: ['50%', '50%']
+                    radius: '50%',
+
+                    detail: {
+                        formatter: '{value}%',
+                    },
+                    data: [{
+                        value: 50,
+                        name: 'L2'
+                    }]
+                }, {
+                    type: 'gauge',
+                    center: ['50%', '55%'], // default: ['50%', '50%']
+                    radius: '50%',
+
+                    detail: {
+                        formatter: '{value}%',
+                    },
+                    data: [{
+                        value: 50,
+                        name: 'L3'
+                    }]
+                }
+            ],
+            // Optional. Only for responsive layout:
+            media: [
+                {
+                    query: { minAspectRatio: 1 },
+                    option: {
+                        series: [
+                            { center: ['25%', '50%'] },
+                            { center: ['50%', '50%'] },
+                            { center: ['75%', '50%'] }
+                        ]
+                    }
+                },
+                {
+                    option: {
+                        series: [
+                            { center: ['50%', '25%'] },
+                            { center: ['50%', '50%'] },
+                            { center: ['50%', '75%'] }
+                        ]
+                    }
+                }
+            ]
+        };
+
+        setInterval(get_data, 1000);
+
+        myChart.setOption(option);
+    </script>
+</body>
+
+</html>

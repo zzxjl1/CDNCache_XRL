@@ -2,7 +2,7 @@ from utils import calc_distance
 import random
 from faker import Faker
 import numpy as np
-from .config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, USER_CHANGE_FAVOR_PROBABILITY, ENABLE_SLEEP
+from .config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, USER_CHANGE_FAVOR_PROBABILITY, ENABLE_SLEEP, ENABLE_USER_CHANGE_FAVOR
 from .connection import Connection
 from utils import SEC2MS
 
@@ -32,7 +32,7 @@ class User():
     def find_nearby_servers(self, env):
 
         nearby_servers = []
-        for edge_server in env.edge_servers:
+        for edge_server in env.edge_servers.values():
             distance = calc_distance(self.location, edge_server.location)
             if distance > edge_server.service_range:  # 超出边缘服务器覆盖范围
                 continue
@@ -100,6 +100,8 @@ class User():
 
     def change_favor(self):
         """模拟一点点改变偏好"""
+        if not ENABLE_USER_CHANGE_FAVOR:
+            return
         if random.random() > USER_CHANGE_FAVOR_PROBABILITY:  # 概率
             return
 

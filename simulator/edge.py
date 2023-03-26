@@ -72,10 +72,11 @@ class EdgeServer():
         return self.bandwidth/self.conn_num
 
     @property
-    def cache_miss_rate(self):
-        if len(self.connection_history) == 0:
+    def cache_miss_rate(self, num=10):
+        temp = self.connection_history[-num:]
+        if len(temp) == 0:
             return 0
-        return len([c for c in self.connection_history if c.cached_initally == False])/len(self.connection_history)
+        return len([c for c in temp if c.cached_initally == False])/len(temp)
 
     def fetch_from_datacenter(self, service):
         if self.is_caching_service(service):
@@ -134,6 +135,9 @@ class EdgeServer():
         return list(self.cache.keys()).index(level)
 
     def add_to_cache(self, env, service, level):
+
+        self.maintainance(env, level)
+
         if service.size > self.get_storage_size(level):
             print(f"【超出最大容量】{service} 超出 {self} 的 {level} CACHE 最大容量！")
             env.cache_event("CACHE_FULL")
@@ -143,7 +147,8 @@ class EdgeServer():
             print(
                 f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}，正在淘汰缓存！")
             env.cache_event("CACHE_FULL")
-            attempts = 1
+            """
+            attempts = 0
             success = False
             while attempts:
                 attempts -= 1
@@ -153,8 +158,9 @@ class EdgeServer():
                 if success:
                     self.add_to_cache(env, service, level)
                     break
-
             return success
+            """
+            return False
 
         if self.has_cache(service):  # 如果已经在缓存中
             already_in_cache_level = self.get_cache_level(service)
@@ -266,7 +272,7 @@ class EdgeServer():
 
     def find_nearby_servers(self, env, max_distance):
         nearby_servers = []
-        for server in env.edge_servers:
+        for server in env.edge_servers.values():
             if server.id == self.id:
                 continue
             if calc_distance(server.location, self.location) <= max_distance:

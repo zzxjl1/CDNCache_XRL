@@ -28,7 +28,7 @@ class Environment():
     def __init__(self):
         self.timestamp = 0  # 时间戳(ms)
         self.pause_flag = False  # 暂停标志
-        self.edge_servers = []  # 边缘服务器集
+        self.edge_servers = {}  # 边缘服务器集
         self.users = []  # 用户集
         self.trend = Trend()  # 时下流行
 
@@ -42,7 +42,8 @@ class Environment():
 
     def init_edge_servers(self):
         for _ in range(EDGE_SERVER_COUNT):
-            self.edge_servers.append(EdgeServer())
+            s = EdgeServer()
+            self.edge_servers[s.id] = s
         print(f"{EDGE_SERVER_COUNT} edge servers created!")
 
     def init_users(self):
@@ -98,7 +99,7 @@ class Environment():
         for service in self.data_center.services.values():  # 刷新服务的状态
             service.tick(self)
 
-        for edge_server in self.edge_servers:  # 刷新边缘服务器的状态
+        for edge_server in self.edge_servers.values():  # 刷新边缘服务器的状态
             edge_server.tick(self)
 
         self.make_trend()

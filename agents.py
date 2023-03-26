@@ -24,9 +24,11 @@ class CacheAgent():
                           batch_size=256)
         self.count = 0
         self.reward_history = []
+        self.action_history = []
         self.load()
 
     def choose_action(self, observation):
+        # return 3
         return self.agent.choose_action(observation)
 
     def remember(self, state, action, reward, state_):
@@ -102,6 +104,7 @@ class CacheAgent():
 
     def execute_action(self, env, conn, action_index):
         action = self.actions[action_index]
+        self.action_history.append(action)
         success = True
         if action == "IDLE":
             pass
@@ -142,9 +145,11 @@ class MaintainanceAgent():
                           batch_size=128)
         self.count = 0
         self.reward_history = []
+        self.action_history = []
         self.load()
 
     def choose_action(self, observation):
+        # return 0
         return self.agent.choose_action(observation)
 
     def remember(self, state, action, reward, state_):
@@ -182,7 +187,7 @@ class MaintainanceAgent():
             "service_charm": service.charm,  # 服务的魅力值
             "service_request_frequency": service.request_frequency,  # 服务的短期被请求频率
             "es_request_frequency": es.request_frequency,  # 该ES服务器被请求的频率
-            "es_cache_miss_rate": es.cache_miss_rate,  # 该ES服务器缓存命中率
+            "es_cache_miss_rate": es.cache_miss_rate,  # 该ES服务器缓存未命中率
             "least_freq_index": services.index(service),  # 该服务在缓存中按照请求频率的排序
         }
         print("Maintainance agent observation:", result)
@@ -206,7 +211,7 @@ class MaintainanceAgent():
             "service_request_frequency": 0,  # 服务的短期被请求频率
             "es_request_frequency": es.request_frequency,  # 该ES服务器被请求的频率
             # "es_cache_level": es.get_level_index(cache_level),  # 该ES服务器缓存级别
-            "es_cache_miss_rate": es.cache_miss_rate,  # 该ES服务器缓存命中率
+            "es_cache_miss_rate": es.cache_miss_rate,  # 该ES服务器缓存未命中率
             "least_freq_index": len(services),  # 该服务在缓存中按照请求频率的排序
 
         }
@@ -219,6 +224,7 @@ class MaintainanceAgent():
 
     def execute_action(self, es, service, action_index):
         action = self.actions[action_index]
+        self.action_history.append(action)
         if action == "PRESERVE":
             pass
         elif action == "DELETE":
