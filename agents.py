@@ -116,10 +116,10 @@ class CacheAgent():
         cache_hit_rate = (1 - overall_cache_miss_rate(env))*100
         storage_utilization = overall_storage_utilization(env)*100
         if not success:
-            return -1000
+            return -100
         print(
             f"【奖励函数】缓存命中率：{cache_hit_rate}，存储利用率：{storage_utilization}")
-        reward = cache_hit_rate  # + storage_utilization
+        reward = cache_hit_rate * storage_utilization
         self.reward_history.append(reward)
         return reward
 
@@ -237,9 +237,9 @@ class MaintainanceAgent():
         cost = -1000 if action == "DELETE" else 0
         cache_hit_rate = (1-overall_cache_miss_rate(env))*100
         # 利用率
-        storage_utilization = (overall_storage_utilization(env))*100
+        storage_utilization = overall_storage_utilization(env)*100
         print(
             f"【奖励函数】缓存命中率：{cache_hit_rate}，动作的累计成本代价：{cost}，存储空间利用率：{storage_utilization}")
-        reward = cache_hit_rate  # + cost + storage_utilization
+        reward = cache_hit_rate * storage_utilization
         self.reward_history.append(reward)
         return reward

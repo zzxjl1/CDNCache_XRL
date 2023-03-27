@@ -11,13 +11,29 @@
         margin: 0 auto;
         height: 20vh;
     }
+
+    pre {
+        background-color: #f5f5f5;
+        color: #4a4a4a;
+        font-size: 1rem;
+        margin: 1rem;
+        padding: 1.25rem 1.5rem;
+    }
 </style>
 
 <body style="margin: 0;">
-    <br>
-    <iframe src="/storage_gauge?id=0" frameborder="0" width="100%" height="100%" style="min-height: 450px;"></iframe>
-    <iframe src="/storage_tree?id=0" frameborder="0" width="100%" height="100%"></iframe>
 
+    <pre>{{description}}</pre>
+
+    <iframe src="/curve_chart?url=get_cache_hit_rate?id={{id}}&type=append" frameborder="0" width="100%"
+        height="100%"></iframe>
+    <iframe src="/pie_chart?url=get_server_cache_hit?id={{id}}" frameborder="0" width="100%" height="100%"></iframe>
+    <iframe src="/curve_chart?url=get_server_conn_num?id={{id}}&type=append" frameborder="0" width="100%"
+        height="100%"></iframe>
+    <iframe src="/storage_tree?id={{id}}" frameborder="0" width="100%" height="100%"></iframe>
+    <br>
+    <iframe src="/storage_gauge?id={{id}}" frameborder="0" width="100%" height="100%"
+        style="min-height: 450px;"></iframe>
 </body>
 
 </html>

@@ -19,6 +19,9 @@ function getUrlParam(name) {
 }
 
 function parse_name(url) {
+    
+    //?后面全部去掉
+    url = url.split('?')[0];
     // '/get_cache_agent_reward' -> 'Cache Agent Reward'
     let temp = url.split('_');
     for (let i = 0; i < temp.length; i++) {

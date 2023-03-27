@@ -1,11 +1,12 @@
 """
 简易Flask服务器，用于UI可视化
 """
+from datetime import timedelta
 import logging
 from simulator import env
 from simulator.config import CANVAS_SIZE_X, CANVAS_SIZE_Y
-from flask import Flask, render_template, jsonify
-from utils import overall_cache_miss_rate, overall_storage_utilization
+from flask import Flask, render_template, jsonify, request
+from utils import overall_cache_miss_rate, overall_storage_utilization, overall_cache_hit_status
 from threading import Thread
 
 app = Flask(__name__,
@@ -14,6 +15,7 @@ app = Flask(__name__,
             static_url_path=""
             )
 
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(hours=1)
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
@@ -55,8 +57,11 @@ def storage_tree():
 
 
 @app.route('/server_details')
-def server_details(id=0):
-    return render_template('server_details.html')
+def server_details():
+    id = request.args.get("id", 0, type=int)
+    es = env.edge_servers[id]
+    text = es.description
+    return render_template('server_details.html', description=text, id=id)
 
 
 @app.route('/get_canvas_size')
@@ -137,8 +142,16 @@ def get_overall_storage_utilization():
     )
 
 
+@app.route('/get_overall_cache_hit_status')
+def get_overall_cache_hit_status():
+    return jsonify(
+        overall_cache_hit_status(env)
+    )
+
+
 @app.route('/get_cache_agent_action_history')
-def get_cache_agent_action_history(num=20):
+def get_cache_agent_action_history():
+    num = request.args.get("num", 20, type=int)
     temp = env.cache_agent.action_history[-num:]
     # 统计每个action的次数
     result = {}
@@ -150,7 +163,8 @@ def get_cache_agent_action_history(num=20):
 
 
 @app.route('/get_maintainance_agent_action_history')
-def get_maintainance_agent_action_history(num=20):
+def get_maintainance_agent_action_history():
+    num = request.args.get("num", 20, type=int)
     temp = env.maintainance_agent.action_history[-num:]
     # 统计每个action的次数
     result = {}
@@ -162,7 +176,8 @@ def get_maintainance_agent_action_history(num=20):
 
 
 @app.route('/get_top_freq_visited_service')
-def get_top_freq_visited_service(num=10):
+def get_top_freq_visited_service():
+    num = request.args.get("num", 10)
     services = list(env.data_center.services.values())
     services.sort(key=lambda x: x.request_frequency)
     result = []
@@ -176,17 +191,20 @@ def get_top_freq_visited_service(num=10):
 
 
 @app.route('/get_top_charming_service')
-def get_top_charming_service(num=10):
+def get_top_charming_service():
+    num = request.args.get("num", 10)
     pass
 
 
 @app.route('/get_top_popular_service')
-def get_top_popular_service(num=10):
+def get_top_popular_service():
+    num = request.args.get("num", 10)
     pass
 
 
 @app.route('/get_storage_utilization')
-def get_storage_utilization(id=0):
+def get_storage_utilization():
+    id = request.args.get("id", 0, type=int)
     server = env.edge_servers[id]
     result = {}
     for level in server.cache.keys():
@@ -198,8 +216,24 @@ def get_storage_utilization(id=0):
     return jsonify(result)
 
 
+@app.route('/get_cache_hit_rate')
+def get_cache_hit_rate():
+    id = request.args.get("id", 0, type=int)
+    server = env.edge_servers[id]
+    return jsonify(1-server.cache_miss_rate)
+
+
+@app.route('/get_server_conn_num')
+def get_server_conn_num():
+    id = request.args.get("id", 0, type=int)
+    server = env.edge_servers[id]
+    return jsonify(server.conn_num)
+
+
 @app.route('/get_storage_tree')
-def get_storage_tree(id=0):
+def get_storage_tree():
+    id = request.args.get("id", 0, type=int)
+
     def parse_service(service):
         return {
             "name": service.name,
@@ -211,9 +245,17 @@ def get_storage_tree(id=0):
     for level in storage.keys():
         result.append({
             "name": level,
-            "value": server.get_storage_size(level),
+            "value": server.storage_used(level),
             "children": [parse_service(service) for service in storage[level]]
         })
+    return jsonify(result)
+
+
+@app.route('/get_server_cache_hit')
+def get_server_cache_hit_history():
+    id = request.args.get("id", 0, type=int)
+    es = env.edge_servers[id]
+    result = es.cache_hit_status
     return jsonify(result)
 
 

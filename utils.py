@@ -79,6 +79,16 @@ def overall_storage_utilization(env):
     return used/total
 
 
+def overall_cache_hit_status(env):
+    """计算整体缓存命中情况"""
+    result = {"L1": 0, "L2": 0, "L3": 0}
+    for es in env.edge_servers.values():
+        result = es.cache_hit_status  # {"L1": 0, "L2": 0, "L3": 0}
+        for level, hit in result.items():
+            result[level] += hit
+    return result
+
+
 if __name__ == "__main__":
     t = calc_distance((0, 0), (3, 4))
     print(t)

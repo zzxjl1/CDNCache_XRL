@@ -19,6 +19,9 @@ class Environment():
     def cache_miss_callback(self, connection):  # 缓存未命中回调函数
         pass
 
+    def cache_hit_callback(self, connection):  # 缓存命中回调函数
+        pass
+
     def request_callback(self, connection):  # 请求回调函数
         pass
 

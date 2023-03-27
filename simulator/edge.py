@@ -78,6 +78,21 @@ class EdgeServer():
             return 0
         return len([c for c in temp if c.cached_initally == False])/len(temp)
 
+    @property
+    def cache_hit_status(self):
+        def count(conns, level):
+            count = 0
+            for conn in conns:
+                if conn.cache_level == level:
+                    count += 1
+            return count
+
+        levels = self.cache.keys()
+        result = {}
+        for level in levels:
+            result[level] = count(self.conns, level)
+        return result
+
     def fetch_from_datacenter(self, service):
         if self.is_caching_service(service):
             print(f"{self} 已经在回源 {service}")
@@ -279,11 +294,11 @@ class EdgeServer():
                 nearby_servers.append(server)
         return nearby_servers
 
-    def show(self) -> str:
+    @property
+    def description(self) -> str:
         res = f"EdgeServer id：{self.id}\n"
         #res += f"Version: {self.version}\n"
         res += f"Max connections: {self.max_conn}\n"
-        res += f"Current connections: {self.conn_num}\n"
         res += f"Location: {self.location}\n"
         res += f"Faulty: {self.faulty}\n"
         res += f"Service range: {self.service_range} km\n"

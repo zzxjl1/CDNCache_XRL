@@ -28,8 +28,15 @@
                             name: key
                         });
                 }
-
+                if (num == null) {
+                    var subtext = '';
+                } else {
+                    var subtext = 'last ' + num + ' actions';
+                }
                 myChart.setOption({
+                    title: {
+                        subtext: subtext,
+                    },
                     series: [
                         {
                             data: result
@@ -45,7 +52,6 @@
         option = {
             title: {
                 text: name,
-                subtext: 'last ' + num + ' actions',
                 left: 'center'
             },
             tooltip: {
