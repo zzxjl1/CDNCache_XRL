@@ -149,7 +149,15 @@ def get_overall_cache_hit_status():
     )
 
 
-@app.route('/get_cache_agent_action_history')
+@app.route('/get_cache_event_history')
+def get_cache_event_history():
+    num = request.args.get("num", 20, type=int)
+    return jsonify(
+        env.statistics.get_cache_event_history(num)
+    )
+
+
+@ app.route('/get_cache_agent_action_history')
 def get_cache_agent_action_history():
     num = request.args.get("num", 20, type=int)
     temp = env.cache_agent.action_history[-num:]
@@ -162,7 +170,7 @@ def get_cache_agent_action_history():
     return jsonify(result)
 
 
-@app.route('/get_maintainance_agent_action_history')
+@ app.route('/get_maintainance_agent_action_history')
 def get_maintainance_agent_action_history():
     num = request.args.get("num", 20, type=int)
     temp = env.maintainance_agent.action_history[-num:]
@@ -175,7 +183,7 @@ def get_maintainance_agent_action_history():
     return jsonify(result)
 
 
-@app.route('/get_top_freq_visited_service')
+@ app.route('/get_top_freq_visited_service')
 def get_top_freq_visited_service():
     num = request.args.get("num", 10)
     services = list(env.data_center.services.values())
@@ -190,19 +198,19 @@ def get_top_freq_visited_service():
     return jsonify(result)
 
 
-@app.route('/get_top_charming_service')
+@ app.route('/get_top_charming_service')
 def get_top_charming_service():
     num = request.args.get("num", 10)
     pass
 
 
-@app.route('/get_top_popular_service')
+@ app.route('/get_top_popular_service')
 def get_top_popular_service():
     num = request.args.get("num", 10)
     pass
 
 
-@app.route('/get_storage_utilization')
+@ app.route('/get_storage_utilization')
 def get_storage_utilization():
     id = request.args.get("id", 0, type=int)
     server = env.edge_servers[id]
@@ -216,21 +224,21 @@ def get_storage_utilization():
     return jsonify(result)
 
 
-@app.route('/get_cache_hit_rate')
+@ app.route('/get_cache_hit_rate')
 def get_cache_hit_rate():
     id = request.args.get("id", 0, type=int)
     server = env.edge_servers[id]
     return jsonify(1-server.cache_miss_rate)
 
 
-@app.route('/get_server_conn_num')
+@ app.route('/get_server_conn_num')
 def get_server_conn_num():
     id = request.args.get("id", 0, type=int)
     server = env.edge_servers[id]
     return jsonify(server.conn_num)
 
 
-@app.route('/get_storage_tree')
+@ app.route('/get_storage_tree')
 def get_storage_tree():
     id = request.args.get("id", 0, type=int)
 
@@ -251,7 +259,7 @@ def get_storage_tree():
     return jsonify(result)
 
 
-@app.route('/get_server_cache_hit')
+@ app.route('/get_server_cache_hit')
 def get_server_cache_hit_history():
     id = request.args.get("id", 0, type=int)
     es = env.edge_servers[id]
@@ -259,18 +267,18 @@ def get_server_cache_hit_history():
     return jsonify(result)
 
 
-@app.route('/get_timestamp')
+@ app.route('/get_timestamp')
 def get_timestamp():
     return str(env.now())
 
 
-@app.route('/pause')
+@ app.route('/pause')
 def pause():
     env.pause()
     return jsonify({'paused': env.paused})
 
 
-@app.route('/resume')
+@ app.route('/resume')
 def resume():
     env.resume()
     return jsonify({'paused': env.paused})

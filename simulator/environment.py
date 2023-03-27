@@ -1,6 +1,6 @@
 from alive_progress import alive_bar
 from faker import Faker
-
+from statistic import Statistics
 from agents import CacheAgent, MaintainanceAgent
 from .trend import Trend
 from .remote import DataCenter
@@ -42,6 +42,8 @@ class Environment():
 
         self.cache_agent = CacheAgent()
         self.maintainance_agent = MaintainanceAgent()
+
+        self.statistics = Statistics()
 
     def init_edge_servers(self):
         for _ in range(EDGE_SERVER_COUNT):

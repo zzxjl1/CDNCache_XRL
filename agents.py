@@ -239,7 +239,7 @@ class MaintainanceAgent():
         # 利用率
         storage_utilization = overall_storage_utilization(env)*100
         print(
-            f"【奖励函数】缓存命中率：{cache_hit_rate}，动作的累计成本代价：{cost}，存储空间利用率：{storage_utilization}")
-        reward = cache_hit_rate * storage_utilization
+            f"【奖励函数】缓存命中率：{cache_hit_rate}，存储空间利用率：{storage_utilization}")
+        reward = cache_hit_rate
         self.reward_history.append(reward)
-        return reward
+        return reward  # TODO: CACHE_FULL_PENALTY

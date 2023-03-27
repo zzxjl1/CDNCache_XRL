@@ -12,7 +12,7 @@ class EdgeServer():
                  max_conn=200,
                  bandwidth=10*GB2MB,
                  speed_limit=-1,
-                 stablity=0.99
+                 stablity=1
                  ) -> None:
         if use_uuid:
             self.id = uuid.uuid4()
@@ -162,8 +162,8 @@ class EdgeServer():
             print(
                 f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}，正在淘汰缓存！")
             env.cache_event("CACHE_FULL")
-            """
-            attempts = 0
+
+            attempts = 1
             success = False
             while attempts:
                 attempts -= 1
@@ -174,7 +174,7 @@ class EdgeServer():
                     self.add_to_cache(env, service, level)
                     break
             return success
-            """
+
             return False
 
         if self.has_cache(service):  # 如果已经在缓存中
@@ -186,6 +186,7 @@ class EdgeServer():
             else:  # 如果已经在缓存中的位置和要添加的位置不一样
                 print(
                     f"{service}已经在 {self} 的 {already_in_cache_level} CACHE 中，正在将其移动到 {level} CACHE")
+                env.cache_event("CACHE_SWITCH")
                 self.delete_from_cache_level(
                     service, already_in_cache_level)  # 先删除
 

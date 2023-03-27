@@ -43,7 +43,8 @@ def service_maintainance_callback(es, service):
 
 
 def cache_event(type):
-    print(f"【cache event】 : {type}")
+    print(f"【cache event】:{type}")
+    env.statistics.add_cache_event(type)
 
 
 if __name__ == "__main__":
