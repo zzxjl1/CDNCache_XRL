@@ -1,7 +1,6 @@
 from alive_progress import alive_bar
 from faker import Faker
 from statistic import Statistics
-from agents import CacheAgent, MaintainanceAgent
 from .trend import Trend
 from .remote import DataCenter
 from .edge import EdgeServer
@@ -25,7 +24,7 @@ class Environment():
     def request_callback(self, connection):  # 请求回调函数
         pass
 
-    def service_maintainance_callback(self, es, service):  # 服务维护回调函数
+    def service_maintainance_callback(self, es, service, ugent):  # 服务维护回调函数
         pass
 
     def __init__(self):
@@ -39,10 +38,6 @@ class Environment():
         self.init_users()
 
         self.data_center = DataCenter(SERVICE_COUNT)  # 数据中心
-
-        self.cache_agent = CacheAgent()
-        self.maintainance_agent = MaintainanceAgent()
-
         self.statistics = Statistics()
 
     def init_edge_servers(self):

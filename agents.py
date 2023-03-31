@@ -1,14 +1,15 @@
+from utils import cache_hit_status_to_percentage
 from D3QN import D3QN
 from utils import overall_cache_miss_rate, overall_storage_utilization
 import os
 
 
 class CacheAgent():
-    def __init__(self, obs_dim=16) -> None:
+    def __init__(self, name, obs_dim=16) -> None:
         self.obs_dim = obs_dim
         self.actions = ["IDLE", "L1", "L2", "L3"]
         self.action_dim = len(self.actions)
-        self.save_dir = "./models/cache_agent"
+        self.save_dir = f"./models/cache_agent/{name}"
         self.agent = D3QN(alpha=1e-4,
                           state_dim=self.obs_dim,
                           action_dim=self.action_dim,
@@ -19,7 +20,7 @@ class CacheAgent():
                           tau=0.005,
                           epsilon=1.0,
                           eps_end=0.05,
-                          eps_dec=5e-4,
+                          eps_dec=1e-3,
                           max_size=1000000,
                           batch_size=256)
         self.count = 0
@@ -113,23 +114,27 @@ class CacheAgent():
         return action, success
 
     def calc_reward(self, env, conn, action, success):
-        cache_hit_rate = (1 - overall_cache_miss_rate(env))*100
-        storage_utilization = overall_storage_utilization(env)*100
+        es = conn.source
+        cache_hit_status = cache_hit_status_to_percentage(es.cache_hit_status)
+        score = cache_hit_status["L1"]*1 + \
+            cache_hit_status["L2"]*0.5 + cache_hit_status["L3"]*0.25
+        cache_hit_rate = (1 - es.cache_miss_rate) * 100
+        storage_utilization = es.storage_utilization * 100
         if not success:
             return -100
         print(
             f"【奖励函数】缓存命中率：{cache_hit_rate}，存储利用率：{storage_utilization}")
-        reward = cache_hit_rate * storage_utilization
+        reward = cache_hit_rate * storage_utilization * score
         self.reward_history.append(reward)
         return reward
 
 
 class MaintainanceAgent():
-    def __init__(self, obs_dim=10) -> None:
+    def __init__(self, name, obs_dim=11) -> None:
         self.obs_dim = obs_dim
         self.actions = ["PRESERVE", "DELETE"]
         self.action_dim = len(self.actions)
-        self.save_dir = "./models/maintainance_agent"
+        self.save_dir = f"./models/maintainance_agent/{name}"
         self.agent = D3QN(alpha=1e-4,
                           state_dim=self.obs_dim,
                           action_dim=self.action_dim,
@@ -140,7 +145,7 @@ class MaintainanceAgent():
                           tau=0.005,
                           epsilon=1.0,
                           eps_end=0.05,
-                          eps_dec=5e-4,
+                          eps_dec=1e-3,
                           max_size=1000000,
                           batch_size=128)
         self.count = 0
@@ -171,7 +176,7 @@ class MaintainanceAgent():
     def load(self):
         self.agent.load_models()
 
-    def generate_observation(self, es, service):
+    def generate_observation(self, es, service, ugent):
         cache_level = es.get_cache_level(service)
         services = es.cache[cache_level]
         services.sort(key=lambda s: s.request_frequency)
@@ -189,6 +194,7 @@ class MaintainanceAgent():
             "es_request_frequency": es.request_frequency,  # 该ES服务器被请求的频率
             "es_cache_miss_rate": es.cache_miss_rate,  # 该ES服务器缓存未命中率
             "least_freq_index": services.index(service),  # 该服务在缓存中按照请求频率的排序
+            "is_ugent": ugent,  # 是否为紧急替换
         }
         print("Maintainance agent observation:", result)
         assert len(result) == self.obs_dim
@@ -213,7 +219,7 @@ class MaintainanceAgent():
             # "es_cache_level": es.get_level_index(cache_level),  # 该ES服务器缓存级别
             "es_cache_miss_rate": es.cache_miss_rate,  # 该ES服务器缓存未命中率
             "least_freq_index": len(services),  # 该服务在缓存中按照请求频率的排序
-
+            "is_ugent": False,  # 是否为紧急替换
         }
         print("Maintainance agent observation:", result)
         assert len(result) == self.obs_dim
@@ -234,12 +240,10 @@ class MaintainanceAgent():
 
     def calc_reward(self, env, es, service, action, cache_level):
         # 奖励函数，考虑 缓存命中率、动作的累计成本代价、存储空间利用率、QOS(下载速度、响应时间、剩余连接数)、负载均衡性、缓存级别
-        cost = -1000 if action == "DELETE" else 0
-        cache_hit_rate = (1-overall_cache_miss_rate(env))*100
+        cost = 0.8 if action == "DELETE" else 0
+        cache_hit_rate = (1-es.cache_miss_rate)*100
         # 利用率
-        storage_utilization = overall_storage_utilization(env)*100
-        print(
-            f"【奖励函数】缓存命中率：{cache_hit_rate}，存储空间利用率：{storage_utilization}")
-        reward = cache_hit_rate
+        storage_utilization = es.storage_utilization * 100
+        reward = cache_hit_rate * storage_utilization
         self.reward_history.append(reward)
         return reward  # TODO: CACHE_FULL_PENALTY

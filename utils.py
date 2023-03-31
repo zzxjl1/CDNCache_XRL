@@ -1,6 +1,5 @@
 import math
 import numpy as np
-from simulator.config import LATEST_VERSION
 
 GB2MB = 1000
 TB2GB = 1000
@@ -13,6 +12,7 @@ DAY2HOUR = 24
 
 def generate_version():
     """生成满足指数分布的版本号，即大部分用户使用的是最新版本，零星出现旧版本，越旧的版本越稀有"""
+    from simulator.config import LATEST_VERSION
 
     scale = 8   # 尺度参数
     size = 1    # 生成 1 个版本号
@@ -87,6 +87,34 @@ def overall_cache_hit_status(env):
         for level, hit in result.items():
             result[level] += hit
     return result
+
+
+def calc_action_history(agent, num=20):
+    temp = agent.action_history[-num:]
+    result = {}
+    for action in agent.actions:
+        result[action] = 0
+    for action in temp:
+        result[action] += 1
+    return result
+
+
+def calc_overall_action_history(agents, num=5):
+    result = {}
+    for agent in agents:
+        t = calc_action_history(agent, num)
+        for action, count in t.items():
+            if action not in result:
+                result[action] = 0
+            result[action] += count
+    return result
+
+
+def cache_hit_status_to_percentage(status):
+    summ = sum(status.values())
+    for name, count in status.items():
+        status[name] = count/(summ if summ else 1)
+    return status
 
 
 if __name__ == "__main__":

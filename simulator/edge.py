@@ -1,5 +1,6 @@
 import uuid
 import random
+from agents import CacheAgent, MaintainanceAgent
 from utils import calc_distance, add_connection_history, calc_request_frequency, pop_expired_connection_history, GB2MB, TB2GB, SEC2MS, MIN2SEC
 from .config import CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, PRINT_ES_STATUS
 
@@ -57,6 +58,9 @@ class EdgeServer():
         self.services_to_fetch = []  # 等待从数据中心获取的服务
         self.connection_history = []  # 连接历史
 
+        self.cache_agent = CacheAgent(name=f"{self.id}")
+        self.maintainance_agent = MaintainanceAgent(name=f"{self.id}")
+
     @property
     def conn_num(self):
         return len(self.conns)+len(self.services_to_fetch)
@@ -92,6 +96,14 @@ class EdgeServer():
         for level in levels:
             result[level] = count(self.conns, level)
         return result
+
+    @property
+    def storage_utilization(self):
+        used, total = 0, 0
+        for level in self.cache.keys():
+            used += self.storage_used(level)
+            total += self.get_storage_size(level)
+        return used/total
 
     def fetch_from_datacenter(self, service):
         if self.is_caching_service(service):
@@ -133,7 +145,7 @@ class EdgeServer():
     def fetch_from_datacenter_speed(self):
         network_speed = self.estimated_network_speed
         if DEBUG:
-            network_speed *= 1000
+            network_speed *= 1e4
         return network_speed  # 每秒的速度
 
     def exceed_size_limit_with_service_added(self, service, level):
@@ -167,15 +179,13 @@ class EdgeServer():
             success = False
             while attempts:
                 attempts -= 1
-                self.maintainance(env, level)
+                self.maintainance(env, level, ugent=True)
                 success = not self.exceed_size_limit_with_service_added(
                     service, level)
                 if success:
                     self.add_to_cache(env, service, level)
                     break
             return success
-
-            return False
 
         if self.has_cache(service):  # 如果已经在缓存中
             already_in_cache_level = self.get_cache_level(service)
@@ -245,15 +255,15 @@ class EdgeServer():
     def request_frequency(self):
         return calc_request_frequency(self.connection_history)
 
-    def maintainance(self, env, level=None):
+    def maintainance(self, env, level=None, ugent=False):
         if level is None:
             for level in self.cache.keys():
-                self.maintainance(env, level)
+                self.maintainance(env, level, ugent)
             return
         services = self.cache[level]
         services.sort(key=lambda s: s.request_frequency)  # 按照请求频率排序
         for service in services:
-            env.service_maintainance_callback(self, service)
+            env.service_maintainance_callback(self, service, ugent)
 
     def tick(self, env):
         pop_expired_connection_history(self.connection_history, env)

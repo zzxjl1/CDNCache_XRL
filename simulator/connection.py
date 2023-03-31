@@ -82,7 +82,7 @@ class Connection():
             # 加入随机因素
         speed *= random.uniform(0.8, 1.2)
         if DEBUG:
-            speed *= 1000
+            speed *= 1e4
         return speed
 
     def transmit_from_datacenter_to_es(self, env):

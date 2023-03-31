@@ -1,6 +1,8 @@
 """
 简易Flask服务器，用于UI可视化
 """
+from utils import calc_overall_action_history
+from utils import calc_action_history
 from datetime import timedelta
 import logging
 from simulator import env
@@ -116,16 +118,42 @@ def get_connections():
 
 @app.route('/get_cache_agent_reward')
 def get_cache_agent_reward():
-    reward_history = env.cache_agent.reward_history
+    id = request.args.get("id", 0, type=int)
+    es = env.edge_servers[id]
+    reward_history = es.cache_agent.reward_history
     result = reward_history[-1] if reward_history else 0
     return jsonify(result)
+
+
+@app.route('/get_overall_cache_agent_reward')
+def get_overall_cache_agent_reward():
+    result = []
+    for es in env.edge_servers.values():
+        reward_history = es.cache_agent.reward_history
+        reward = reward_history[-1] if reward_history else 0
+        result.append(reward)
+    avg = sum(result)/len(result)
+    return jsonify(avg)
 
 
 @app.route('/get_maintainance_agent_reward')
 def get_maintainance_agent_action():
-    reward_history = env.maintainance_agent.reward_history
+    id = request.args.get("id", 0, type=int)
+    es = env.edge_servers[id]
+    reward_history = es.maintainance_agent.reward_history
     result = reward_history[-1] if reward_history else 0
     return jsonify(result)
+
+
+@app.route('/get_overall_maintainance_agent_reward')
+def get_overall_maintainance_agent_action():
+    result = []
+    for es in env.edge_servers.values():
+        reward_history = es.maintainance_agent.reward_history
+        reward = reward_history[-1] if reward_history else 0
+        result.append(reward)
+    avg = sum(result)/len(result)
+    return jsonify(avg)
 
 
 @app.route('/get_overall_cache_hit_rate')
@@ -149,37 +177,45 @@ def get_overall_cache_hit_status():
     )
 
 
-@app.route('/get_cache_event_history')
-def get_cache_event_history():
+@app.route('/get_overall_cache_event_history')
+def get_overall_cache_event_history():
     num = request.args.get("num", 20, type=int)
     return jsonify(
         env.statistics.get_cache_event_history(num)
     )
 
 
-@ app.route('/get_cache_agent_action_history')
-def get_cache_agent_action_history():
-    num = request.args.get("num", 20, type=int)
-    temp = env.cache_agent.action_history[-num:]
-    # 统计每个action的次数
-    result = {}
-    for action in env.cache_agent.actions:
-        result[action] = 0
-    for action in temp:
-        result[action] += 1
+@app.route('/get_overall_cache_agent_action_history')
+def get_overall_cache_agent_action_history():
+    agents = [es.cache_agent for es in env.edge_servers.values()]
+    num = request.args.get("num", 5, type=int)
+    result = calc_overall_action_history(agents, num)
     return jsonify(result)
 
 
-@ app.route('/get_maintainance_agent_action_history')
-def get_maintainance_agent_action_history():
+@app.route('/get_overall_maintainance_agent_action_history')
+def get_overall_maintainance_agent_action_history():
+    agents = [es.maintainance_agent for es in env.edge_servers.values()]
+    num = request.args.get("num", 5, type=int)
+    result = calc_overall_action_history(agents, num)
+    return jsonify(result)
+
+
+@app.route('/get_cache_agent_action_history')
+def get_cache_agent_action_history():
+    id = request.args.get("id", 0, type=int)
     num = request.args.get("num", 20, type=int)
-    temp = env.maintainance_agent.action_history[-num:]
-    # 统计每个action的次数
-    result = {}
-    for action in env.maintainance_agent.actions:
-        result[action] = 0
-    for action in temp:
-        result[action] += 1
+    es = env.edge_servers[id]
+    result = calc_action_history(es.cache_agent, num)
+    return jsonify(result)
+
+
+@app.route('/get_maintainance_agent_action_history')
+def get_maintainance_agent_action_history():
+    id = request.args.get("id", 0, type=int)
+    num = request.args.get("num", 20, type=int)
+    es = env.edge_servers[id]
+    result = calc_action_history(es.maintainance_agent, num)
     return jsonify(result)
 
 
