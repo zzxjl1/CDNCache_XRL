@@ -30,11 +30,8 @@ class DuelingDeepQNetwork(nn.Module):
 
         return Q
 
-    def save_checkpoint(self, checkpoint_file):
-        T.save(self.state_dict(), checkpoint_file)
-
-    def load_checkpoint(self, checkpoint_file):
-        self.load_state_dict(T.load(checkpoint_file))
+    def save(self, checkpoint_file):
+        T.save(self, checkpoint_file)
 
 
 class D3QN:
@@ -114,19 +111,19 @@ class D3QN:
         self.decrement_epsilon()
 
     def save_models(self):
-        self.q_eval.save_checkpoint(
+        self.q_eval.save(
             self.checkpoint_dir + '/D3QN_q_eval.pth')
         print('Saving Q_eval network successfully!')
-        self.q_target.save_checkpoint(
+        self.q_target.save(
             self.checkpoint_dir + '/D3QN_Q_target.pth')
         print('Saving Q_target network successfully!')
 
     def load_models(self):
         try:
-            self.q_eval.load_checkpoint(
+            self.q_eval = T.load(
                 self.checkpoint_dir + '/D3QN_q_eval.pth')
             print('Loading Q_eval network successfully!')
-            self.q_target.load_checkpoint(
+            self.q_target = T.load(
                 self.checkpoint_dir + '/D3QN_Q_target.pth')
             print('Loading Q_target network successfully!')
         except FileNotFoundError:
