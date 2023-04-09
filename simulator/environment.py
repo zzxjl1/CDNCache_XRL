@@ -1,6 +1,6 @@
 from alive_progress import alive_bar
 from faker import Faker
-from statistic import Statistics
+from .statistic import Statistics
 from .trend import Trend
 from .remote import DataCenter
 from .edge import EdgeServer
