@@ -5,7 +5,7 @@ USER_COUNT = 10  # 用户数量
 FEATURE_VECTOR_SIZE = 256  # 特征向量维度
 CANVAS_SIZE_X = 300  # 画布大小X轴(KM)
 CANVAS_SIZE_Y = 100  # 画布大小Y轴(KM)
-ENABLE_SLEEP = False  # 是否允许用户睡眠
+ENABLE_SLEEP = True  # 是否允许用户睡眠
 
 ENABLE_NEW_SERVICE_UPLOAD = False  # 是否允许新服务上传
 NEW_SERVICE_UPLOAD_PROBABILITY = 1e-3  # 一定概率有新服务上传

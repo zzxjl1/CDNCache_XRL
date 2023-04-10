@@ -35,9 +35,10 @@ class EdgeServer():
 
         # 最大存储容量（mB）
         # 三级缓存形如(L1,L2,L3)，其中L1为内存，L2为SSD，L3为HDD
-        L1 = random.choice([2, 3, 4, 8])
-        L2 = random.choice([64, 128, 256])
-        L3 = random.choice([200, 300, 500, 700, 1000])
+        L1 = random.choice([4, 8, 16, 32])
+        L2 = random.choice([256, 512, 1000])
+        #L3 = random.choice([200, 300, 500, 700, 1000])
+        L3 = 1e-4
         self.storage_size = (L1, L2, L3)
 
         L1_speed = random.randint(8, 40)*GB2MB
@@ -188,17 +189,9 @@ class EdgeServer():
             return success
 
         if self.has_cache(service):  # 如果已经在缓存中
-            already_in_cache_level = self.get_cache_level(service)
-            if already_in_cache_level == level:  # 如果已经在缓存中的位置和要添加的位置一样
-                print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
-                env.cache_event("CACHE_DUPLICATE")
-                return False
-            else:  # 如果已经在缓存中的位置和要添加的位置不一样
-                print(
-                    f"{service}已经在 {self} 的 {already_in_cache_level} CACHE 中，正在将其移动到 {level} CACHE")
-                env.cache_event("CACHE_SWITCH")
-                self.delete_from_cache_level(
-                    service, already_in_cache_level)  # 先删除
+            print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
+            env.cache_event("CACHE_DUPLICATE")
+            return False
 
         self.cache[level].append(service)
         print(f"【添加缓存】 {self} 存储 {service} 到 {level} CACHE")

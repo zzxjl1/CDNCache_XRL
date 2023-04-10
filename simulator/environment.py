@@ -28,6 +28,9 @@ class Environment():
         pass
 
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.timestamp = 0  # 时间戳(ms)
         self.pause_flag = False  # 暂停标志
         self.edge_servers = {}  # 边缘服务器集

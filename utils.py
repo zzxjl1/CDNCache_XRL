@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from scipy.stats import truncnorm
 
 GB2MB = 1000
 TB2GB = 1000
@@ -8,6 +9,20 @@ SEC2MS = 1000
 MIN2SEC = 60
 HOUR2MIN = 60
 DAY2HOUR = 24
+
+
+def generate_size(min, max):
+    """生成满足正态分布的服务大小，即大部分服务大小为中等大小，零星出现小服务和大服务"""
+
+    # 设置均值和标准差
+    mu = (max + min) / 2
+    sigma = 2
+    # 创建一个支持区间 [a,b] 的正态分布
+    dist = truncnorm((min - mu) / sigma, (max - mu) /
+                     sigma, loc=mu, scale=sigma)
+    # 从分布中抽取 1 个样本
+    sample = dist.rvs(1)[0]
+    return sample
 
 
 def generate_version():
@@ -120,3 +135,13 @@ def cache_hit_status_to_percentage(status):
 if __name__ == "__main__":
     t = calc_distance((0, 0), (3, 4))
     print(t)
+
+    import matplotlib.pyplot as plt
+    result = []
+    for _ in range(100):
+        size = generate_size(0.1, 10)
+        print(size)
+        result.append(size)
+    # 直方图
+    plt.hist(result, bins=20)
+    plt.show()
