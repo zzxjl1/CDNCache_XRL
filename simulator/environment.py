@@ -1,6 +1,5 @@
 from alive_progress import alive_bar
 from faker import Faker
-from .statistic import Statistics
 from .trend import Trend
 from .remote import DataCenter
 from .edge import EdgeServer
@@ -12,8 +11,6 @@ fake = Faker()
 
 
 class Environment():
-    def cache_event(self, t):  # 奖励事件回调函数
-        pass
 
     def cache_miss_callback(self, connection):  # 缓存未命中回调函数
         pass
@@ -41,7 +38,6 @@ class Environment():
         self.init_users()
 
         self.data_center = DataCenter(SERVICE_COUNT)  # 数据中心
-        self.statistics = Statistics()
 
     def init_edge_servers(self):
         for _ in range(EDGE_SERVER_COUNT):

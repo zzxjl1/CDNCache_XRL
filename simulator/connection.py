@@ -48,10 +48,11 @@ class Connection():
         flag = self.source.connect(self)
         self.service.add_history(self)
         env.request_callback(self)
-        env.cache_event("CACHE_HIT" if self.cached_initally else "CACHE_MISS")
+        self.source.add_cache_event(
+            "CACHE_HIT" if self.cached_initally else "CACHE_MISS")
         if not flag:
             self.set_status(ConnectionStatus.FAILED)
-            env.cache_event("FAILED_TO_CONNECT")
+            self.source.add_cache_event("FAILED_TO_CONNECT")
         return flag
 
     def close(self):

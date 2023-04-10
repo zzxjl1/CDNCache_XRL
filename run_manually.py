@@ -95,18 +95,12 @@ def service_maintainance_callback(es, service, ugent):
     maintainance_df.to_csv("maintainance_df.csv", index=False)
 
 
-def cache_event(type):
-    print(f"【cache event】:{type}")
-    env.statistics.add_cache_event(type)
-
-
 if __name__ == "__main__":
     if ENABLE_VISUALIZATION:
         apis.start_server()
     env.request_callback = request_callback
     env.cache_miss_callback = cache_miss_callback
     env.cache_hit_callback = cache_hit_callback
-    env.cache_event = cache_event
     env.service_maintainance_callback = service_maintainance_callback
     while True:
         if env.pause_flag:

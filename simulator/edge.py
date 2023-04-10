@@ -1,6 +1,7 @@
 import uuid
 import random
-from agents import CacheAgent, MaintainanceAgent
+from dqn_agents import CacheAgent, MaintainanceAgent
+#from ppo_agents import CacheAgent, MaintainanceAgent
 from utils import calc_distance, add_connection_history, calc_request_frequency, pop_expired_connection_history, GB2MB, TB2GB, SEC2MS, MIN2SEC
 from .config import CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, PRINT_ES_STATUS
 
@@ -35,10 +36,9 @@ class EdgeServer():
 
         # 最大存储容量（mB）
         # 三级缓存形如(L1,L2,L3)，其中L1为内存，L2为SSD，L3为HDD
-        L1 = random.choice([4, 8, 16, 32])
-        L2 = random.choice([256, 512, 1000])
-        #L3 = random.choice([200, 300, 500, 700, 1000])
-        L3 = 1e-4
+        L1 = random.choice([4, 8, 16])
+        L2 = random.choice([32, 64, 128, 256])
+        L3 = random.choice([200, 300, 500, 700, 1000])
         self.storage_size = (L1, L2, L3)
 
         L1_speed = random.randint(8, 40)*GB2MB
@@ -58,9 +58,10 @@ class EdgeServer():
         }  # 缓存
         self.services_to_fetch = []  # 等待从数据中心获取的服务
         self.connection_history = []  # 连接历史
+        self.cache_event_history = []  # 缓存事件历史
 
-        self.cache_agent = CacheAgent(name=f"{self.id}")
-        self.maintainance_agent = MaintainanceAgent(name=f"{self.id}")
+        self.cache_agent = CacheAgent(name=f"{self.id}", es=self)
+        self.maintainance_agent = MaintainanceAgent(name=f"{self.id}", es=self)
 
     @property
     def conn_num(self):
@@ -168,13 +169,13 @@ class EdgeServer():
 
         if service.size > self.get_storage_size(level):
             print(f"【超出最大容量】{service} 超出 {self} 的 {level} CACHE 最大容量！")
-            env.cache_event("CACHE_FULL")
+            self.add_cache_event("CACHE_FULL")
             return False
 
         if self.exceed_size_limit_with_service_added(service, level):
             print(
                 f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}，正在淘汰缓存！")
-            env.cache_event("CACHE_FULL")
+            self.add_cache_event("CACHE_FULL")
 
             attempts = 1
             success = False
@@ -190,7 +191,7 @@ class EdgeServer():
 
         if self.has_cache(service):  # 如果已经在缓存中
             print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
-            env.cache_event("CACHE_DUPLICATE")
+            self.add_cache_event("CACHE_DUPLICATE")
             return False
 
         self.cache[level].append(service)
@@ -255,6 +256,7 @@ class EdgeServer():
             return
         services = self.cache[level]
         services.sort(key=lambda s: s.request_frequency)  # 按照请求频率排序
+        # for service in services[:10]:  # 只维护前10个
         for service in services:
             env.service_maintainance_callback(self, service, ugent)
 
@@ -297,6 +299,26 @@ class EdgeServer():
             if calc_distance(server.location, self.location) <= max_distance:
                 nearby_servers.append(server)
         return nearby_servers
+
+    def add_cache_event(self, event, num=100):
+        if len(self.cache_event_history) > num:
+            self.cache_event_history.pop(0)
+        self.cache_event_history.append(event)
+
+    def get_cache_event_history(self, num=20):
+        result = {
+            "CACHE_HIT": 0,
+            "CACHE_MISS": 0,
+            "CACHE_FULL": 0,
+            "CACHE_DUPLICATE": 0,
+            "FAILED_TO_CONNECT": 0,
+        }
+        for event in self.cache_event_history[-num:]:
+            if event in result:
+                result[event] += 1
+            else:
+                result[event] = 1
+        return result
 
     @property
     def description(self) -> str:

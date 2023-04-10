@@ -5,16 +5,17 @@ import os
 
 
 class CacheAgent():
-    def __init__(self, name, obs_dim=13) -> None:
+    def __init__(self, name, es, obs_dim=15) -> None:
         self.obs_dim = obs_dim
-        self.actions = ["IDLE", "L1", "L2"]
+        self.es = es
+        self.actions = ["IDLE", "L1", "L2", "L3"]
         self.action_dim = len(self.actions)
         self.save_dir = f"./models/cache_agent/{name}"
-        self.agent = D3QN(alpha=1e-4,
+        self.agent = D3QN(alpha=5e-4,
                           state_dim=self.obs_dim,
                           action_dim=self.action_dim,
-                          fc1_dim=64,
-                          fc2_dim=32,
+                          fc1_dim=128,
+                          fc2_dim=128,
                           ckpt_dir=self.save_dir,
                           gamma=0.99,
                           tau=0.005,
@@ -26,6 +27,7 @@ class CacheAgent():
         self.count = 0
         self.reward_history = []
         self.action_history = []
+        self.success_history = []
         self.load()
 
     def choose_action(self, observation):
@@ -33,7 +35,7 @@ class CacheAgent():
         return self.agent.choose_action(observation)
 
     def remember(self, state, action, reward, state_):
-        done = self.count % 100 == 0
+        done = self.es.cache_miss_rate > 0.9
         self.agent.remember(state, action, reward, state_, done)
         self.count += 1
         if done:
@@ -60,10 +62,14 @@ class CacheAgent():
             "free_storage_size_ratio_L1": conn.source.free_storage_size("L1")/conn.source.get_storage_size("L1"),
             # 当前ES的L2剩余空间
             "free_storage_size_ratio_L2": conn.source.free_storage_size("L2")/conn.source.get_storage_size("L2"),
+            # 当前ES的L3剩余空间
+            "free_storage_size_ratio_L3": conn.source.free_storage_size("L3")/conn.source.get_storage_size("L3"),
             # L1能放得下
             "can_L1_fit": conn.source.free_storage_size("L1") > conn.service.size,
             # L2能放得下
             "can_L2_fit": conn.source.free_storage_size("L2") > conn.service.size,
+            # L3能放得下
+            "can_L3_fit": conn.source.free_storage_size("L3") > conn.service.size,
             # 服务大小
             "service_size": conn.service.size/GB2MB,
             # 当前从ES下载的估计速度
@@ -101,43 +107,51 @@ class CacheAgent():
             pass
         else:
             success = conn.source.add_to_cache(env, conn.service, action)
+            self.success_history.append(success)
         return action, success
 
     def calc_reward(self, env, conn, action, success):
         es = conn.source
+
+        action_history = self.action_history[-10:]
+        action_cost = 1-action_history.count("IDLE") / len(action_history)
+
+        success_history = self.success_history[-10:]
+        success_rate = success_history.count(True) / len(success_history)
+
         cache_hit_status = cache_hit_status_to_percentage(es.cache_hit_status)
         score = cache_hit_status["L1"]*1 + \
-            cache_hit_status["L2"]*0.5
+            cache_hit_status["L2"]*0.5 + \
+            cache_hit_status["L3"]*0.2
+
         cache_hit_rate = (1 - es.cache_miss_rate) * 100
         storage_utilization = es.storage_utilization * 100
-        if not success:
-            return -100
-        print(
-            f"【奖励函数】缓存命中率：{cache_hit_rate}，存储利用率：{storage_utilization}")
-        reward = cache_hit_rate * storage_utilization * score
+
+        reward = cache_hit_rate * storage_utilization * score * action_cost * success_rate
         self.reward_history.append(reward)
         return reward
 
 
 class MaintainanceAgent():
-    def __init__(self, name, obs_dim=10) -> None:
+    def __init__(self, name, es, obs_dim=11) -> None:
         self.obs_dim = obs_dim
+        self.es = es
         self.actions = ["PRESERVE", "DELETE"]
         self.action_dim = len(self.actions)
         self.save_dir = f"./models/maintainance_agent/{name}"
-        self.agent = D3QN(alpha=1e-4,
+        self.agent = D3QN(alpha=5e-4,
                           state_dim=self.obs_dim,
                           action_dim=self.action_dim,
-                          fc1_dim=64,
-                          fc2_dim=32,
+                          fc1_dim=128,
+                          fc2_dim=128,
                           ckpt_dir=self.save_dir,
                           gamma=0.99,
                           tau=0.005,
                           epsilon=1.0,
-                          eps_end=0.1,
+                          eps_end=0.05,
                           eps_dec=1e-3,
                           max_size=1000000,
-                          batch_size=128)
+                          batch_size=256)
         self.count = 0
         self.reward_history = []
         self.action_history = []
@@ -148,7 +162,7 @@ class MaintainanceAgent():
         return self.agent.choose_action(observation)
 
     def remember(self, state, action, reward, state_):
-        done = self.count % 100 == 0
+        done = self.es.cache_miss_rate > 0.9
         self.agent.remember(state, action, reward, state_, done)
         self.count += 1
         if done:
@@ -178,6 +192,7 @@ class MaintainanceAgent():
             "service_size_ratio": service.size/es.get_storage_size(cache_level),
             "cached_in_L1": cache_level == "L1",
             "cached_in_L2": cache_level == "L2",
+            "cached_in_L3": cache_level == "L3",
             "service_charm": service.charm,  # 服务的魅力值
             "service_request_frequency": service.request_frequency,  # 服务的短期被请求频率
             "es_request_frequency": es.request_frequency,  # 该ES服务器被请求的频率
@@ -204,6 +219,7 @@ class MaintainanceAgent():
             "service_size_ratio": 0,
             "cached_in_L1": False,
             "cached_in_L2": False,
+            "cached_in_L3": False,
             "service_charm": 0,  # 服务的魅力值
             "service_request_frequency": 0,  # 服务的短期被请求频率
             "es_request_frequency": es.request_frequency,  # 该ES服务器被请求的频率
@@ -231,9 +247,23 @@ class MaintainanceAgent():
 
     def calc_reward(self, env, es, service, action, cache_level):
         # 奖励函数，考虑 缓存命中率、动作的累计成本代价、存储空间利用率、QOS(下载速度、响应时间、剩余连接数)、负载均衡性、缓存级别
-        cache_hit_rate = (1-es.cache_miss_rate)*100
-        # 利用率
-        storage_utilization = es.storage_utilization * 100
-        reward = cache_hit_rate * storage_utilization
+        free_ratio = es.free_storage_size(
+            cache_level)/es.get_storage_size(cache_level)  # 剩余空间占比
+
+        action_history = self.action_history[-10:]
+        action_cost = action_history.count(
+            "PRESERVE") / len(action_history)  # 惩罚淘汰，确保能量消耗最小
+
+        cache_event_history = es.get_cache_event_history(num=10)
+        anti_cache_full_rate = 1 - \
+            cache_event_history["CACHE_FULL"] / \
+            cache_event_history["CACHE_MISS"]  # 惩罚缓存满，确保必要时能够淘汰
+
+        cache_hit_rate = (1-es.cache_miss_rate)*100  # 缓存命中率
+        storage_utilization = es.storage_utilization * 100  # 存储空间利用率
+
+        reward = cache_hit_rate * storage_utilization * \
+            (action_cost*free_ratio) * \
+            (anti_cache_full_rate*(1-free_ratio))
         self.reward_history.append(reward)
         return reward  # TODO: CACHE_FULL_PENALTY

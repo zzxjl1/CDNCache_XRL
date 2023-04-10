@@ -5,6 +5,14 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 
+# 权重初始化
+
+
+def init_weights(m):
+    if type(m) == nn.Linear:
+        T.nn.init.xavier_uniform_(m.weight)
+        m.bias.data.fill_(0.01)
+
 
 class PPOMemory:
     def __init__(self, batch_size):
@@ -50,20 +58,17 @@ class PPOMemory:
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self,  alpha, input_dims, n_actions,
-                 ckpt_dir, fc1_dims, fc2_dims):
+    def __init__(self,  alpha, input_dims, n_actions, fc1_dims, fc2_dims):
         super(ActorNetwork, self).__init__()
 
-        self.checkpoint_file = os.path.join(ckpt_dir, 'actor_ppo.pt')
         self.actor = nn.Sequential(
-            nn.Linear(*input_dims, fc1_dims),
+            nn.Linear(input_dims, fc1_dims),
             nn.ReLU(),
             nn.Linear(fc1_dims, fc2_dims),
             nn.ReLU(),
             nn.Linear(fc2_dims, n_actions),
             nn.Softmax(dim=-1)
         )
-
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
@@ -74,17 +79,16 @@ class ActorNetwork(nn.Module):
 
         return dist
 
-    def save_checkpoint(self):
-        T.save(self, self.checkpoint_file)
+    def save(self, filepath):
+        T.save(self, filepath)
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, alpha, input_dims, ckpt_dir, fc1_dims, fc2_dims):
+    def __init__(self, alpha, input_dims,  fc1_dims, fc2_dims):
         super(CriticNetwork, self).__init__()
 
-        self.checkpoint_file = os.path.join(ckpt_dir, 'critic_ppo.pt')
         self.critic = nn.Sequential(
-            nn.Linear(*input_dims, fc1_dims),
+            nn.Linear(input_dims, fc1_dims),
             nn.ReLU(),
             nn.Linear(fc1_dims, fc2_dims),
             nn.ReLU(),
@@ -99,36 +103,48 @@ class CriticNetwork(nn.Module):
         value = self.critic(state)
         return value
 
-    def save_checkpoint(self):
-        T.save(self, self.checkpoint_file)
+    def save(self, filepath):
+        T.save(self, filepath)
 
 
-class Agent:
-    def __init__(self, n_actions, input_dims, fc1_dim, fc2_dim, ckpt_dir, gamma=0.99, alpha=0.0003, gae_lambda=0.95,
+class PPO:
+    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, ckpt_dir, gamma=0.99, alpha=0.0003, gae_lambda=0.95,
                  policy_clip=0.2, batch_size=64, n_epochs=10):
         self.gamma = gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
         self.gae_lambda = gae_lambda
+        self.actor_network_path = os.path.join(ckpt_dir, 'actor_ppo.pt')
+        self.critic_network_path = os.path.join(ckpt_dir, 'critic_ppo.pt')
 
         self.actor = ActorNetwork(
-            alpha, input_dims, n_actions, ckpt_dir, fc1_dim, fc2_dim)
+            alpha, state_dim, action_dim, fc1_dim, fc2_dim)
         self.critic = CriticNetwork(
-            alpha, input_dims, ckpt_dir, fc1_dim, fc2_dim)
+            alpha, state_dim, fc1_dim, fc2_dim)
         self.memory = PPOMemory(batch_size)
+
+        self.actor.apply(init_weights)
+        self.critic.apply(init_weights)
 
     def remember(self, state, action, probs, vals, reward, done):
         self.memory.store_memory(state, action, probs, vals, reward, done)
 
     def save_models(self):
         print('... saving models ...')
-        self.actor.save_checkpoint()
-        self.critic.save_checkpoint()
+        self.actor.save(self.actor_network_path)
+        print("load actor network successfully!")
+        self.critic.save(self.critic_network_path)
+        print("load critic network successfully!")
 
     def load_models(self):
         print('... loading models ...')
-        self.actor.load_checkpoint()
-        self.critic.load_checkpoint()
+        try:
+            self.actor = T.load(self.actor_network_path)
+            print(f"load {self.actor_network_path} successfully!")
+            self.critic = T.load(self.critic_network_path)
+            print(f"load {self.critic_network_path} successfully!")
+        except FileNotFoundError:
+            print('No saved network found!')
 
     def choose_action(self, observation):
         state = T.tensor([observation], dtype=T.float).to(self.actor.device)

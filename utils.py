@@ -125,6 +125,17 @@ def calc_overall_action_history(agents, num=5):
     return result
 
 
+def calc_overall_cache_event_history(ess, num=10):
+    result = {}
+    for es in ess:
+        t = es.get_cache_event_history(num)
+        for event, count in t.items():
+            if event not in result:
+                result[event] = 0
+            result[event] += count
+    return result
+
+
 def cache_hit_status_to_percentage(status):
     summ = sum(status.values())
     for name, count in status.items():

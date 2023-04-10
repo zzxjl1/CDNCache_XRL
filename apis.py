@@ -8,7 +8,7 @@ import logging
 from simulator import env
 from simulator.config import CANVAS_SIZE_X, CANVAS_SIZE_Y
 from flask import Flask, render_template, jsonify, request
-from utils import overall_cache_miss_rate, overall_storage_utilization, overall_cache_hit_status
+from utils import overall_cache_miss_rate, overall_storage_utilization, overall_cache_hit_status, calc_overall_cache_event_history
 from threading import Thread
 
 app = Flask(__name__,
@@ -180,9 +180,9 @@ def get_overall_cache_hit_status():
 @app.route('/get_overall_cache_event_history')
 def get_overall_cache_event_history():
     num = request.args.get("num", 20, type=int)
-    return jsonify(
-        env.statistics.get_cache_event_history(num)
-    )
+    ess = env.edge_servers.values()
+    result = calc_overall_cache_event_history(ess, num)
+    return jsonify(result)
 
 
 @app.route('/get_overall_cache_agent_action_history')
