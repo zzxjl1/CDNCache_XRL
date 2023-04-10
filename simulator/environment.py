@@ -25,9 +25,6 @@ class Environment():
         pass
 
     def __init__(self):
-        self.reset()
-
-    def reset(self):
         self.timestamp = 0  # 时间戳(ms)
         self.pause_flag = False  # 暂停标志
         self.edge_servers = {}  # 边缘服务器集
@@ -39,6 +36,18 @@ class Environment():
 
         self.data_center = DataCenter(SERVICE_COUNT)  # 数据中心
 
+    def reset(self):
+        self.timestamp = 0  # 时间戳(ms)
+        self.pause_flag = False  # 暂停标志
+        self.trend = Trend()  # 时下流行
+
+        for server in self.edge_servers.values():
+            server.reset()
+        for user in self.users:
+            user.reset(self)
+        for service in self.data_center.services.values():
+            service.reset()
+
     def init_edge_servers(self):
         for _ in range(EDGE_SERVER_COUNT):
             s = EdgeServer()
@@ -46,15 +55,9 @@ class Environment():
         print(f"{EDGE_SERVER_COUNT} edge servers created!")
 
     def init_users(self):
-        with alive_bar(USER_COUNT, title=f'生成用户中') as bar:
-            while True:
-                if len(self.users) == USER_COUNT:  # 生成了足够的用户数量
-                    break
-                user = User()
-                nearby_servers = user.find_nearby_servers(self)
-                if len(nearby_servers) > 0:  # 确保都有边缘服务器覆盖
-                    self.users.append(user)
-                    bar()
+        for _ in range(USER_COUNT):
+            user = User(self)
+            self.users.append(user)
         print(f"{USER_COUNT} users created!")
 
     def make_trend(self, n=None):

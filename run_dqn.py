@@ -2,6 +2,7 @@ import time
 import apis
 from simulator import env
 from simulator.config import ENABLE_VISUALIZATION
+from utils import overall_cache_miss_rate
 
 
 def request_callback(conn):
@@ -23,7 +24,7 @@ def cache_miss_callback(conn):
     reward = cache_agent.calc_reward(env, conn, action, success)
     print("【reward】: ", reward)
     obs_next = cache_agent.generate_observation(env, conn)
-    cache_agent.remember(obs, action_index, reward, obs_next)
+    cache_agent.remember(obs, action_index, reward, obs_next, env.now())
     cache_agent.learn()
 
 
@@ -44,7 +45,7 @@ def service_maintainance_callback(es, service, ugent):
     elif action == "DELETE":
         obs_next = maintainance_agent.generate_observation_next(
             cache_level, es)
-    maintainance_agent.remember(obs, action_index, reward, obs_next)
+    maintainance_agent.remember(obs, action_index, reward, obs_next, env.now())
     maintainance_agent.learn()
 
 
@@ -59,5 +60,8 @@ if __name__ == "__main__":
         if env.pause_flag:
             time.sleep(0.5)
             continue
+        if env.now() > 2000 and overall_cache_miss_rate(env) > 0.8:
+            print(f"【环境失去作用了，正在重启！】")
+            env.reset()
         env.tick()
         # time.sleep(0.001)  # not full speed

@@ -320,6 +320,12 @@ def resume():
     return jsonify({'paused': env.paused})
 
 
+@ app.route('/reset')
+def reset():
+    env.reset()
+    return jsonify({'success': True})
+
+
 def start_server():
     global server_thread
     server_thread.start()

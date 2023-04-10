@@ -9,12 +9,7 @@ from .config import CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, PRINT_ES_STATUS
 class EdgeServer():
     id_counter = 0
 
-    def __init__(self,
-                 use_uuid=False,
-                 max_conn=200,
-                 bandwidth=10*GB2MB,
-                 speed_limit=-1,
-                 stablity=1
+    def __init__(self, use_uuid=False
                  ) -> None:
         if use_uuid:
             self.id = uuid.uuid4()
@@ -22,8 +17,13 @@ class EdgeServer():
             self.id = EdgeServer.id_counter
             EdgeServer.id_counter += 1
 
+        self.cache_agent = CacheAgent(name=f"{self.id}", es=self)
+        self.maintainance_agent = MaintainanceAgent(name=f"{self.id}", es=self)
+        self.reset()
+
+    def reset(self):
         # self.version = generate_version()  # 版本号（只能向下兼容）
-        self.max_conn = max_conn  # 最大连接数
+        self.max_conn = random.randint(100, 200)  # 最大连接数
         self.conns = []  # 提供服务的连接
 
         # 随机生成地理位置
@@ -46,10 +46,10 @@ class EdgeServer():
         L3_speed = random.randint(50, 300)
         self.storage_speed = (L1_speed, L2_speed, L3_speed)  # 磁盘读写速度（mB/s）
 
-        self.bandwidth = bandwidth  # 最大吞吐量（mB/s）
+        self.bandwidth = random.uniform(0.5, 10)*GB2MB  # 最大吞吐量（mB/s）
         # 对每个用户的限速（mB/s）-1表示不限速
-        self.speed_limit = speed_limit
-        self.stablity = stablity  # 稳定性(模拟随机出错，拒绝服务)
+        self.speed_limit = -1
+        self.stablity = 1  # 稳定性(模拟随机出错，拒绝服务)
 
         self.cache = {
             "L1": [],  # 内存
@@ -59,9 +59,6 @@ class EdgeServer():
         self.services_to_fetch = []  # 等待从数据中心获取的服务
         self.connection_history = []  # 连接历史
         self.cache_event_history = []  # 缓存事件历史
-
-        self.cache_agent = CacheAgent(name=f"{self.id}", es=self)
-        self.maintainance_agent = MaintainanceAgent(name=f"{self.id}", es=self)
 
     @property
     def conn_num(self):

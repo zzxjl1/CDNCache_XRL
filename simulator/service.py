@@ -11,14 +11,15 @@ fake = Faker()
 class Service():
     id_counter = 0
 
-    def __init__(self,
-                 name=None,
-                 ) -> None:
+    def __init__(self) -> None:
         self.id = Service.id_counter
         Service.id_counter += 1
-        self.name = name if name else fake.url()
-        #self.version = generate_version()
+        self.name = hex(id(self))
 
+        self.reset()
+
+    def reset(self):
+        #self.version = generate_version()
         self.size = round(generate_size(0.2, 20)*GB2MB)
         self.feature_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述服务的特征
         # 服务的魅力值(标准正态分布)

@@ -1,6 +1,7 @@
 from utils import cache_hit_status_to_percentage
 from D3QN import D3QN
 from utils import GB2MB
+from simulator.config import SAVE_MODEL, LOAD_MODEL_FROM_FILE
 import os
 
 
@@ -28,17 +29,20 @@ class CacheAgent():
         self.reward_history = []
         self.action_history = []
         self.success_history = []
-        self.load()
+        self.last_timestamp = 0
+        if LOAD_MODEL_FROM_FILE:
+            self.load()
 
     def choose_action(self, observation):
         # return 3
         return self.agent.choose_action(observation)
 
-    def remember(self, state, action, reward, state_):
-        done = self.es.cache_miss_rate > 0.9
+    def remember(self, state, action, reward, state_, timestamp):
+        done = timestamp < self.last_timestamp
         self.agent.remember(state, action, reward, state_, done)
         self.count += 1
-        if done:
+        self.last_timestamp = timestamp
+        if SAVE_MODEL and self.count % 100 == 0:
             self.save()
 
     def learn(self):
@@ -117,7 +121,8 @@ class CacheAgent():
         action_cost = 1-action_history.count("IDLE") / len(action_history)
 
         success_history = self.success_history[-10:]
-        success_rate = success_history.count(True) / len(success_history)
+        success_rate = success_history.count(
+            True) / len(success_history) if len(success_history) > 0 else 1
 
         cache_hit_status = cache_hit_status_to_percentage(es.cache_hit_status)
         score = cache_hit_status["L1"]*1 + \
@@ -153,19 +158,22 @@ class MaintainanceAgent():
                           max_size=1000000,
                           batch_size=256)
         self.count = 0
+        self.last_timestamp = 0
         self.reward_history = []
         self.action_history = []
-        self.load()
+        if LOAD_MODEL_FROM_FILE:
+            self.load()
 
     def choose_action(self, observation):
         # return 0
         return self.agent.choose_action(observation)
 
-    def remember(self, state, action, reward, state_):
-        done = self.es.cache_miss_rate > 0.9
+    def remember(self, state, action, reward, state_, timestamp):
+        done = timestamp < self.last_timestamp
         self.agent.remember(state, action, reward, state_, done)
         self.count += 1
-        if done:
+        self.last_timestamp = timestamp
+        if SAVE_MODEL and self.count % 100 == 0:
             self.save()
 
     def learn(self):
@@ -257,7 +265,7 @@ class MaintainanceAgent():
         cache_event_history = es.get_cache_event_history(num=10)
         anti_cache_full_rate = 1 - \
             cache_event_history["CACHE_FULL"] / \
-            cache_event_history["CACHE_MISS"]  # 惩罚缓存满，确保必要时能够淘汰
+            cache_event_history["CACHE_MISS"] if cache_event_history["CACHE_MISS"] != 0 else 1  # 惩罚缓存满，确保必要时能够淘汰
 
         cache_hit_rate = (1-es.cache_miss_rate)*100  # 缓存命中率
         storage_utilization = es.storage_utilization * 100  # 存储空间利用率

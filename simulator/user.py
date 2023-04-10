@@ -12,14 +12,15 @@ faker = Faker()
 class User():
     id_counter = 0
 
-    def __init__(self):
+    def __init__(self, env):
         self.id = User.id_counter
         User.id_counter += 1
-        self.name = faker.name()
+        self.name = hex(id(self))
+        self.reset(env)
+
+    def reset(self, env):
         self.is_idle = True  # 是否处于空闲（不在下载）状态
-        x = random.uniform(0, CANVAS_SIZE_X)
-        y = random.uniform(0, CANVAS_SIZE_Y)
-        self.location = (x, y)  # 用户位置
+        self.generate_loc(env)  # 生成用户位置
         self.bandwidth = round(random.uniform(20, 100), 2)  # 用户带宽（mB/s）
         self.sleep_remaining = 0  # 睡眠剩余时间
         self.favor_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述偏好
@@ -29,8 +30,16 @@ class User():
 
         self.sleep()
 
-    def find_nearby_servers(self, env):
+    def generate_loc(self, env):
+        while True:
+            x = random.uniform(0, CANVAS_SIZE_X)
+            y = random.uniform(0, CANVAS_SIZE_Y)
+            self.location = (x, y)  # 用户位置
+            nearby_servers = self.find_nearby_servers(env)
+            if len(nearby_servers) > 0:  # 确保都有边缘服务器覆盖
+                break
 
+    def find_nearby_servers(self, env):
         nearby_servers = []
         for edge_server in env.edge_servers.values():
             distance = calc_distance(self.location, edge_server.location)
