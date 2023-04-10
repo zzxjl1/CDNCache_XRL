@@ -2,7 +2,7 @@ import random
 from .edge import EdgeServer
 from .service import Service
 from utils import SEC2MS, calc_distance
-from .config import DEBUG, PRINT_DOWNLOAD_PERCENTAGE, STEPPING
+from .config import DEBUG, PRINT_DOWNLOAD_PERCENTAGE, STEPPING, PRINT_CONN_STATUS
 from enum import Enum
 
 
@@ -40,8 +40,8 @@ class Connection():
 
     def set_status(self, status):
         self.status = status
-        print(
-            f"connection from {self.user} to {self.source} {status}!")
+        if PRINT_CONN_STATUS:
+            print(f"connection from {self.user} to {self.source} {status}!")
 
     def start(self, env) -> bool:
         self.set_status(ConnectionStatus.PENDING)

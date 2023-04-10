@@ -48,6 +48,8 @@ class Environment():
         for service in self.data_center.services.values():
             service.reset()
 
+        print("【环境重置完成！】")
+
     def init_edge_servers(self):
         for _ in range(EDGE_SERVER_COUNT):
             s = EdgeServer()

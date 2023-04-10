@@ -21,7 +21,10 @@ MAKE_TREND_PROBABILITY = 1e-4
 DEBUG = True  # 是否开启调试模式(提高带宽)
 ENABLE_VISUALIZATION = True  # 是否启动可视化
 PRINT_DOWNLOAD_PERCENTAGE = False  # 打印下载进度
+PRINT_CONN_STATUS = False  # 打印连接状态
 PRINT_ES_STATUS = False  # 打印ES状态
+PRINT_AGENT_STATUS = False  # 打印Agent状态
+PRINT_USER_FETCH_PROCESS = False  # 打印用户获取服务过程
 
 STEPPING = 1  # 步进
 

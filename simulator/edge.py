@@ -6,6 +6,12 @@ from utils import calc_distance, add_connection_history, calc_request_frequency,
 from .config import CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, PRINT_ES_STATUS
 
 
+def mutable_print(text):
+    if not PRINT_ES_STATUS:
+        return
+    print(text)
+
+
 class EdgeServer():
     id_counter = 0
 
@@ -106,16 +112,16 @@ class EdgeServer():
 
     def fetch_from_datacenter(self, service):
         if self.is_caching_service(service):
-            print(f"{self} 已经在回源 {service}")
+            mutable_print(f"{self} 已经在回源 {service}")
             return
         self.services_to_fetch.append(service)
-        print(f"【开始回源】{self} start fetching {service} from remote!")
+        mutable_print(f"【开始回源】{self} start fetching {service} from remote!")
 
     def finish_fetch_from_datacenter(self, service):
         if not self.is_caching_service(service):
             return
         self.services_to_fetch.remove(service)
-        print(f"【回源完成】{self} done fetching {service}, 接下来开始向用户传输！")
+        mutable_print(f"【回源完成】{self} done fetching {service}, 接下来开始向用户传输！")
 
     def is_caching_service(self, service):
         for s in self.services_to_fetch:
@@ -155,7 +161,7 @@ class EdgeServer():
             return
         self.cache[level].sort(key=lambda s: s.request_frequency)
         self.cache[level].pop(0)
-        print(f"【缓存警告】{self} 的 {level} CACHE 已满，正在删除最不常请求的服务！")
+        mutable_print(f"【缓存警告】{self} 的 {level} CACHE 已满，正在删除最不常请求的服务！")
 
     def get_level_index(self, level):
         return list(self.cache.keys()).index(level)
@@ -165,12 +171,12 @@ class EdgeServer():
         self.maintainance(env, level)
 
         if service.size > self.get_storage_size(level):
-            print(f"【超出最大容量】{service} 超出 {self} 的 {level} CACHE 最大容量！")
+            mutable_print(f"【超出最大容量】{service} 超出 {self} 的 {level} CACHE 最大容量！")
             self.add_cache_event("CACHE_FULL")
             return False
 
         if self.exceed_size_limit_with_service_added(service, level):
-            print(
+            mutable_print(
                 f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}，正在淘汰缓存！")
             self.add_cache_event("CACHE_FULL")
 
@@ -187,12 +193,12 @@ class EdgeServer():
             return success
 
         if self.has_cache(service):  # 如果已经在缓存中
-            print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
+            mutable_print(f"{service}已经在 {self} 的 {level} CACHE 中了，无需重复添加")
             self.add_cache_event("CACHE_DUPLICATE")
             return False
 
         self.cache[level].append(service)
-        print(f"【添加缓存】 {self} 存储 {service} 到 {level} CACHE")
+        mutable_print(f"【添加缓存】 {self} 存储 {service} 到 {level} CACHE")
         return True
 
     def delete_from_cache(self, service):
@@ -202,7 +208,7 @@ class EdgeServer():
     def delete_from_cache_level(self, service, level):
         if service in self.cache[level]:
             self.cache[level].remove(service)
-            print(f"【删除缓存】 {self} 删除 {level} CACHE 中的 {service}")
+            mutable_print(f"【删除缓存】 {self} 删除 {level} CACHE 中的 {service}")
 
     def count_conn_by_cache_level(self, level):
         count = 0
@@ -263,18 +269,15 @@ class EdgeServer():
         # if random.random() < 1e-8:
         #    self.faulty = True
 
-        if PRINT_ES_STATUS:
-            print(f"【ES状态】{self}: {self.conn_num}/{self.max_conn} connections, {self.load*100:.2f}% load, {self.request_frequency:.2f} req/s, estimated network speed {self.estimated_network_speed:.2f} mB/s, {self.free_storage_size('L1'):.2f} mB free in L1, {self.free_storage_size('L2'):.2f} mB free in L2, {self.free_storage_size('L3'):.2f} mB free in L3, {len(self.services_to_fetch)} 个服务正在回源")
-
     def connect(self, conn) -> bool:
         if self.conn_num >= self.max_conn:
-            print(f"{self} reach max connections!")
+            mutable_print(f"{self} reach max connections!")
             return False
         if self.faulty:
-            print(f"{self} is faulty!")
+            mutable_print(f"{self} is faulty!")
             return False
         if random.random() > self.stablity:
-            print(
+            mutable_print(
                 f"{self} is unstable and refused the connection！")
             return False
         self.conns.append(conn)
@@ -283,7 +286,8 @@ class EdgeServer():
 
     def disconnect(self, conn) -> bool:
         if conn not in self.conns:
-            print(f"failed to close, {self} does not have this connection!")
+            mutable_print(
+                f"failed to close, {self} does not have this connection!")
             return False
         self.conns.remove(conn)
         return True

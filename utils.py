@@ -143,6 +143,13 @@ def cache_hit_status_to_percentage(status):
     return status
 
 
+def obs2vector(obs):
+    result = list(obs.values())
+    # cast to float
+    result = [float(x) for x in result]
+    return result
+
+
 if __name__ == "__main__":
     t = calc_distance((0, 0), (3, 4))
     print(t)

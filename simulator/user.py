@@ -2,11 +2,17 @@ from utils import calc_distance
 import random
 from faker import Faker
 import numpy as np
-from .config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, USER_CHANGE_FAVOR_PROBABILITY, ENABLE_SLEEP, ENABLE_USER_CHANGE_FAVOR
+from .config import FEATURE_VECTOR_SIZE, CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, USER_CHANGE_FAVOR_PROBABILITY, ENABLE_SLEEP, ENABLE_USER_CHANGE_FAVOR, PRINT_USER_FETCH_PROCESS
 from .connection import Connection
 from utils import SEC2MS
 
 faker = Faker()
+
+
+def mutable_print(text):
+    if not PRINT_USER_FETCH_PROCESS:
+        return
+    print(text)
 
 
 class User():
@@ -53,39 +59,39 @@ class User():
 
     def download(self, env, service):
         """开始下载"""
-        print(f"{self} is downloading {service} ({service.size} MB)")
+        mutable_print(f"{self} is downloading {service} ({service.size} MB)")
         self.is_idle = False
         nearby_servers = self.find_nearby_servers(env)
 
         text = f"{self} 在 {len(nearby_servers)} 个边缘服务器的覆盖范围内\n"
         text += f"距离由进到远依次为：{nearby_servers}"
-        print(text)
+        mutable_print(text)
 
         sources_with_cache = [
             source for source, _ in nearby_servers if source.has_cache(service)]
-        print(
+        mutable_print(
             f"{self} 在以下 {len(sources_with_cache)} 个边缘服务器的缓存中找到了 {service}：\n{sources_with_cache}")
         flag = False
         for source in sources_with_cache:  # 优先从缓存下载
             flag = self.create_connection(env, source, service)
             if flag:
-                print(f"{self} 开始从缓存下载 {service}")
+                mutable_print(f"{self} 开始从缓存下载 {service}")
                 break
         if not flag:  # 回源
             for source, distance in nearby_servers:
-                print(f"{self} 击穿缓存，尝试从 {source} 回源")
+                mutable_print(f"{self} 击穿缓存，尝试从 {source} 回源")
                 flag = self.create_connection(env, source, service)
                 if flag:
                     break
                 else:
-                    print(f"{self}从 {source} 回源失败，尝试下一个ES")
+                    mutable_print(f"{self}从 {source} 回源失败，尝试下一个ES")
         if not flag:  # 回源也全部失败
             self.is_idle = True
-            print(f"No edge server available to {self}, fatal error!")
+            mutable_print(f"No edge server available to {self}, fatal error!")
 
     def create_connection(self, env, source, service):
         """建立连接"""
-        print(f"【创建连接】{self} is creating connection to {source}")
+        mutable_print(f"【创建连接】{self} is creating connection to {source}")
         self.connection = Connection(self, source, service, env.now())
         self.add_history(service)
         env.trend.update(env.timestamp, service)
@@ -98,12 +104,13 @@ class User():
         if not ENABLE_SLEEP:  # 为了方便DEBUG
             return
         self.sleep_remaining = int(random.uniform(0, 5)*SEC2MS)
-        print(
+        mutable_print(
             f"【用户休眠了】{self} went to sleep for {self.sleep_remaining} Milliseconds")
 
     def download_finished(self):
         """用户下载完成"""
-        print(f"【下载完成】{self} finished downloading {self.connection.service}!")
+        mutable_print(
+            f"【下载完成】{self} finished downloading {self.connection.service}!")
         self.is_idle = True
         self.sleep()  # 下载完成后休息一段时间
 
@@ -124,11 +131,11 @@ class User():
         """找到最符合用户偏好的服务"""
         fav_service = None
         best_score = -1
-        print(f"有 {len(services)} 个服务可供 {self} 选择")
+        mutable_print(f"有 {len(services)} 个服务可供 {self} 选择")
         for service in services:
             already_seen = self.have_seen(service)
             if service.charm > 10 and not already_seen:  # 存在超高魅力值，直接选中
-                print(
+                mutable_print(
                     f"【服务被选择】{service} with super high charm {service.charm} got selected by {self}!")
                 return service
             # 依据喜好和服务魅力打分
@@ -142,7 +149,7 @@ class User():
                 best_score = score
                 #print(best_score, service)
                 fav_service = service
-        print(
+        mutable_print(
             f"【服务被选择】{fav_service} got selected by {self} with favor score {best_score}")
         return fav_service
 
@@ -161,7 +168,7 @@ class User():
         if len(self.history) > 10:
             self.history.pop(0)
         self.history.append(service.id)  # 标记为已看过的
-        print(f"{self} 将 {service} 标记为已看过")
+        mutable_print(f"{self} 将 {service} 标记为已看过")
 
     def tick(self, env):
         """时钟滴答"""
@@ -172,7 +179,8 @@ class User():
         if self.is_idle:  # 空闲状态
             service = self.choose_service(env)
             self.download(env, service)
-            print(f"【用户开始请求】{self} is downloading {self.connection.service}")
+            mutable_print(
+                f"【用户开始请求】{self} is downloading {self.connection.service}")
         else:  # 下载中
             self.download_progress_update(env)
 

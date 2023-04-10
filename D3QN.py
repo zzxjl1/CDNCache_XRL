@@ -85,6 +85,9 @@ class D3QN:
         self.eps_dec = eps_dec
         self.batch_size = batch_size
         self.checkpoint_dir = ckpt_dir
+        self.q_eval_network_path = self.checkpoint_dir + '/D3QN_q_eval.pth'
+        self.q_target_network_path = self.checkpoint_dir + '/D3QN_q_target.pth'
+
         self.action_space = [i for i in range(action_dim)]
 
         self.q_eval = DuelingDeepQNetwork(alpha=alpha, state_dim=state_dim, action_dim=action_dim,
@@ -151,20 +154,16 @@ class D3QN:
         self.decrement_epsilon()
 
     def save_models(self):
-        self.q_eval.save(
-            self.checkpoint_dir + '/D3QN_q_eval.pth')
-        print('Saving Q_eval network successfully!')
-        self.q_target.save(
-            self.checkpoint_dir + '/D3QN_Q_target.pth')
-        print('Saving Q_target network successfully!')
+        self.q_eval.save(self.q_eval_network_path)
+        print(f'Save {self.q_eval_network_path} successfully!')
+        self.q_target.save(self.q_target_network_path)
+        print(f'Save {self.q_target_network_path} successfully!')
 
     def load_models(self):
         try:
-            self.q_eval = T.load(
-                self.checkpoint_dir + '/D3QN_q_eval.pth')
-            print('Loading Q_eval network successfully!')
-            self.q_target = T.load(
-                self.checkpoint_dir + '/D3QN_Q_target.pth')
-            print('Loading Q_target network successfully!')
+            self.q_eval = T.load(self.q_eval_network_path)
+            print(f'Load {self.q_eval_network_path} successfully!')
+            self.q_target = T.load(self.q_target_network_path)
+            print(f'Load {self.q_target_network_path} successfully!')
         except FileNotFoundError:
             print('No saved network found!')

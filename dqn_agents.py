@@ -57,7 +57,7 @@ class CacheAgent():
     def load(self):
         self.agent.load_models()
 
-    def generate_observation(self, env, conn, with_feature_name=False):
+    def generate_observation(self, env, conn):
         nearby_servers = conn.source.find_nearby_servers(env, 40)
         data = {
             # 当前ES的负载（按连接数计算）
@@ -93,15 +93,9 @@ class CacheAgent():
             # 该ES服务器被请求的频率
             "es_request_frequency": conn.source.request_frequency,
         }
-        print("Cache agent observation:", data)
+        #print("Cache agent observation:", data)
         assert len(data) == self.obs_dim
-        if with_feature_name:
-            return data
-        else:
-            result = list(data.values())
-            # cast to float
-            result = [float(x) for x in result]
-            return result
+        return data
 
     def execute_action(self, env, conn, action_index):
         action = self.actions[action_index]
@@ -188,7 +182,7 @@ class MaintainanceAgent():
     def load(self):
         self.agent.load_models()
 
-    def generate_observation(self, es, service, ugent, with_feature_name=False):
+    def generate_observation(self, es, service, ugent):
         cache_level = es.get_cache_level(service)
         services = es.cache[cache_level]
         services.sort(key=lambda s: s.request_frequency)
@@ -208,15 +202,9 @@ class MaintainanceAgent():
             "least_freq_index": services.index(service),  # 该服务在缓存中按照请求频率的排序
             "is_ugent": ugent,  # 是否为紧急替换
         }
-        print("Maintainance agent observation:", result)
+        #print("Maintainance agent observation:", result)
         assert len(result) == self.obs_dim
-        if with_feature_name:
-            return result
-        else:
-            result = list(result.values())
-            # cast to float
-            result = [float(x) for x in result]
-            return result
+        return result
 
     def generate_observation_next(self, cache_level, es):
         services = es.cache[cache_level]
@@ -236,11 +224,8 @@ class MaintainanceAgent():
             "least_freq_index": len(services),  # 该服务在缓存中按照请求频率的排序
             "is_ugent": False,  # 是否为紧急替换
         }
-        print("Maintainance agent observation:", result)
+        #print("Maintainance agent observation:", result)
         assert len(result) == self.obs_dim
-        result = list(result.values())
-        # cast to float
-        result = [float(x) for x in result]
         return result
 
     def execute_action(self, es, service, action_index):
@@ -249,7 +234,7 @@ class MaintainanceAgent():
         if action == "PRESERVE":
             pass
         elif action == "DELETE":
-            print(f"【决定淘汰缓存】{service} 将从 {es} 中被淘汰")
+            #print(f"【决定淘汰缓存】{service} 将从 {es} 中被淘汰")
             es.delete_from_cache(service)
         return action
 
