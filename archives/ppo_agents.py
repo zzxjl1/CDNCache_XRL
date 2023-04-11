@@ -23,6 +23,7 @@ class CacheAgent():
                          n_epochs=10,
                          batch_size=256)
         self.count = 0
+        self.last_timestamp = 0
         self.reward_history = []
         self.action_history = []
         self.success_history = []
@@ -32,10 +33,11 @@ class CacheAgent():
         # return 3
         return self.agent.choose_action(observation)
 
-    def remember(self, state, action, probs, vals, reward):
-        done = self.es.cache_miss_rate > 0.9
+    def remember(self, state, action, probs, vals, reward, timestamp):
+        done = timestamp < self.last_timestamp
         self.agent.remember(state, action, probs, vals, reward, done)
         self.count += 1
+        self.last_timestamp = timestamp
         if self.count % 100 == 0:
             self.save()
 
@@ -51,7 +53,7 @@ class CacheAgent():
     def load(self):
         self.agent.load_models()
 
-    def generate_observation(self, env, conn, with_feature_name=False):
+    def generate_observation(self, env, conn):
         nearby_servers = conn.source.find_nearby_servers(env, 40)
         data = {
             # 当前ES的负载（按连接数计算）
@@ -87,15 +89,9 @@ class CacheAgent():
             # 该ES服务器被请求的频率
             "es_request_frequency": conn.source.request_frequency,
         }
-        print("Cache agent observation:", data)
+        #print("Cache agent observation:", data)
         assert len(data) == self.obs_dim
-        if with_feature_name:
-            return data
-        else:
-            result = list(data.values())
-            # cast to float
-            result = [float(x) for x in result]
-            return result
+        return data
 
     def execute_action(self, env, conn, action_index):
         action = self.actions[action_index]
@@ -115,7 +111,8 @@ class CacheAgent():
         action_cost = 1-action_history.count("IDLE") / len(action_history)
 
         success_history = self.success_history[-10:]
-        success_rate = success_history.count(True) / len(success_history)
+        success_rate = success_history.count(
+            True) / len(success_history) if len(success_history) > 0 else 1
 
         cache_hit_status = cache_hit_status_to_percentage(es.cache_hit_status)
         score = cache_hit_status["L1"]*1 + \
@@ -149,6 +146,7 @@ class MaintainanceAgent():
                          n_epochs=10,
                          batch_size=1024)
         self.count = 0
+        self.last_timestamp = 0
         self.reward_history = []
         self.action_history = []
         self.load()
@@ -157,10 +155,11 @@ class MaintainanceAgent():
         # return 0
         return self.agent.choose_action(observation)
 
-    def remember(self, state, action, probs, vals, reward):
-        done = self.es.cache_miss_rate > 0.9
+    def remember(self, state, action, probs, vals, reward, timestamp):
+        done = timestamp < self.last_timestamp
         self.agent.remember(state, action, probs, vals, reward, done)
         self.count += 1
+        self.last_timestamp = timestamp
         if self.count % 100 == 0:
             self.save()
 
@@ -176,7 +175,7 @@ class MaintainanceAgent():
     def load(self):
         self.agent.load_models()
 
-    def generate_observation(self, es, service, ugent, with_feature_name=False):
+    def generate_observation(self, es, service, ugent):
         cache_level = es.get_cache_level(service)
         services = es.cache[cache_level]
         services.sort(key=lambda s: s.request_frequency)
@@ -196,15 +195,9 @@ class MaintainanceAgent():
             "least_freq_index": services.index(service),  # 该服务在缓存中按照请求频率的排序
             "is_ugent": ugent,  # 是否为紧急替换
         }
-        print("Maintainance agent observation:", result)
+        #print("Maintainance agent observation:", result)
         assert len(result) == self.obs_dim
-        if with_feature_name:
-            return result
-        else:
-            result = list(result.values())
-            # cast to float
-            result = [float(x) for x in result]
-            return result
+        return result
 
     def generate_observation_next(self, cache_level, es):
         services = es.cache[cache_level]
@@ -253,7 +246,7 @@ class MaintainanceAgent():
         cache_event_history = es.get_cache_event_history(num=10)
         anti_cache_full_rate = 1 - \
             cache_event_history["CACHE_FULL"] / \
-            cache_event_history["CACHE_MISS"]  # 惩罚缓存满，确保必要时能够淘汰
+            cache_event_history["CACHE_MISS"] if cache_event_history["CACHE_MISS"] != 0 else 1  # 惩罚缓存满，确保必要时能够淘汰
 
         cache_hit_rate = (1-es.cache_miss_rate)*100  # 缓存命中率
         storage_utilization = es.storage_utilization * 100  # 存储空间利用率
