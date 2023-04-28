@@ -259,7 +259,8 @@ class EdgeServer():
             return
         services = self.cache[level]
         services.sort(key=lambda s: s.request_frequency)  # 按照请求频率排序
-        # for service in services[:10]:  # 只维护前10个
+        # if not ugent:
+        #    services = services[:10]  # 只维护前10个
         for service in services:
             env.service_maintainance_callback(self, service, ugent)
 

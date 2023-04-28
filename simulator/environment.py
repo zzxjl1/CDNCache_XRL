@@ -6,6 +6,7 @@ from .edge import EdgeServer
 from .user import User
 from .config import SERVICE_COUNT, EDGE_SERVER_COUNT, USER_COUNT, NEW_SERVICE_UPLOAD_PROBABILITY, MAKE_TREND_PROBABILITY, ENABLE_MAKE_TREND, ENABLE_NEW_SERVICE_UPLOAD, STEPPING
 import random
+from torch.utils.tensorboard import SummaryWriter
 
 fake = Faker()
 
@@ -35,8 +36,17 @@ class Environment():
         self.init_users()
 
         self.data_center = DataCenter(SERVICE_COUNT)  # 数据中心
+        self.writer = SummaryWriter()
+
+    def add_scalar(self, tag, value):
+        self.writer.add_scalar(tag, value, self.timestamp)
+
+    def add_scalars(self, tag, scalar_dict):
+        self.writer.add_scalars(tag, scalar_dict, self.timestamp)
 
     def reset(self):
+        self.writer = SummaryWriter()
+
         self.timestamp = 0  # 时间戳(ms)
         self.pause_flag = False  # 暂停标志
         self.trend = Trend()  # 时下流行

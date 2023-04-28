@@ -114,8 +114,9 @@ def calc_action_history(agent, num=20):
     return result
 
 
-def calc_overall_action_history(agents, num=5):
+def calc_overall_cache_agent_action_history(env, num=5):
     result = {}
+    agents = [es.cache_agent for es in env.edge_servers.values()]
     for agent in agents:
         t = calc_action_history(agent, num)
         for action, count in t.items():
@@ -125,8 +126,21 @@ def calc_overall_action_history(agents, num=5):
     return result
 
 
-def calc_overall_cache_event_history(ess, num=10):
+def calc_overall_maintainance_agent_action_history(env, num=5):
     result = {}
+    agents = [es.maintainance_agent for es in env.edge_servers.values()]
+    for agent in agents:
+        t = calc_action_history(agent, num)
+        for action, count in t.items():
+            if action not in result:
+                result[action] = 0
+            result[action] += count
+    return result
+
+
+def calc_overall_cache_event_history(env, num=20):
+    result = {}
+    ess = env.edge_servers.values()
     for es in ess:
         t = es.get_cache_event_history(num)
         for event, count in t.items():
@@ -134,6 +148,26 @@ def calc_overall_cache_event_history(ess, num=10):
                 result[event] = 0
             result[event] += count
     return result
+
+
+def calc_overall_maintainance_agent_reward(env):
+    result = []
+    for es in env.edge_servers.values():
+        reward_history = es.maintainance_agent.reward_history
+        reward = reward_history[-1] if reward_history else 0
+        result.append(reward)
+    avg = sum(result)/len(result)
+    return avg
+
+
+def calc_overall_cache_agent_reward(env):
+    result = []
+    for es in env.edge_servers.values():
+        reward_history = es.cache_agent.reward_history
+        reward = reward_history[-1] if reward_history else 0
+        result.append(reward)
+    avg = sum(result)/len(result)
+    return avg
 
 
 def cache_hit_status_to_percentage(status):
