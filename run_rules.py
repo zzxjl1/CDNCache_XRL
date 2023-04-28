@@ -77,7 +77,7 @@ def cache_miss_callback(conn):
     global cache_df
     obs["action"] = action
     cache_df = cache_df.append(obs, ignore_index=True)
-    cache_df.to_csv("cache_df.csv", index=False)
+    #cache_df.to_csv("cache_df.csv", index=False)
 
 
 def service_maintainance_callback(es, service, ugent):
@@ -98,12 +98,14 @@ def service_maintainance_callback(es, service, ugent):
     score += obs["cached_in_L2"] * 0.3
     score += obs["cached_in_L3"] * 0.2
     score *= obs["es_cache_miss_rate"]
+    score *= 1 - obs["free_space_ratio"]
+
     def sigmoid(x): return 1 / (1 + 2.71828 ** (-x))
     score *= sigmoid(obs["least_freq_index"])
     print("score:", score)
 
     # 按概率选动作
-    if random.random() < score:
+    if random.random() < score/2:
         action = "DELETE"
     else:
         action = "PRESERVE"
@@ -113,7 +115,7 @@ def service_maintainance_callback(es, service, ugent):
     # overwrite
     if obs["is_ugent"] and obs["least_freq_index"] <= 1:
         action = "DELETE"
-    elif obs["free_space_ratio"] <= 0.8:
+    elif obs["free_space_ratio"] >= 0.2:
         action = "PRESERVE"
 
     actions = maintainance_agent.actions
@@ -124,7 +126,7 @@ def service_maintainance_callback(es, service, ugent):
     global maintainance_df
     obs["action"] = action
     maintainance_df = maintainance_df.append(obs, ignore_index=True)
-    maintainance_df.to_csv("maintainance_df.csv", index=False)
+    #maintainance_df.to_csv("maintainance_df.csv", index=False)
 
 
 if __name__ == "__main__":
@@ -134,9 +136,13 @@ if __name__ == "__main__":
     env.cache_miss_callback = cache_miss_callback
     env.cache_hit_callback = cache_hit_callback
     env.service_maintainance_callback = service_maintainance_callback
-    while True:
-        if env.pause_flag:
-            time.sleep(0.5)
-            continue
-        env.tick()
-        # time.sleep(0.001)  # not full speed
+    try:
+        while True:
+            if env.pause_flag:
+                time.sleep(0.5)
+                continue
+            env.tick()
+            # time.sleep(0.001)  # not full speed
+    except KeyboardInterrupt:
+        cache_df.to_csv("cache_df.csv", index=False)
+        maintainance_df.to_csv("maintainance_df.csv", index=False)
