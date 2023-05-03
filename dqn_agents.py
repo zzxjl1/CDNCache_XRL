@@ -125,8 +125,10 @@ class CacheAgent():
 
         cache_hit_rate = (1 - es.cache_miss_rate) * 100
         storage_utilization = es.storage_utilization * 100
+        free_ratio = 1 - es.storage_utilization
 
-        reward = cache_hit_rate * storage_utilization * score * action_cost * success_rate
+        reward = cache_hit_rate * storage_utilization * \
+            score * (action_cost**2) * success_rate
         self.reward_history.append(reward)
         return reward
 
@@ -150,7 +152,7 @@ class MaintainanceAgent():
                           eps_end=0.05,
                           eps_dec=1e-3,
                           max_size=1000000,
-                          batch_size=256)
+                          batch_size=128)
         self.count = 0
         self.last_timestamp = 0
         self.reward_history = []
@@ -240,8 +242,7 @@ class MaintainanceAgent():
 
     def calc_reward(self, env, es, service, action, cache_level):
         # 奖励函数，考虑 缓存命中率、动作的累计成本代价、存储空间利用率、QOS(下载速度、响应时间、剩余连接数)、负载均衡性、缓存级别
-        free_ratio = es.free_storage_size(
-            cache_level)/es.get_storage_size(cache_level)  # 剩余空间占比
+        free_ratio = 1 - es.storage_utilization  # 剩余空间占比
 
         action_history = self.action_history[-10:]
         action_cost = action_history.count(
@@ -253,10 +254,14 @@ class MaintainanceAgent():
             cache_event_history["CACHE_MISS"] if cache_event_history["CACHE_MISS"] != 0 else 1  # 惩罚缓存满，确保必要时能够淘汰
 
         cache_hit_rate = (1-es.cache_miss_rate)*100  # 缓存命中率
+        status = es.cache_hit_status
+        level_hit_rate = cache_hit_status_to_percentage(
+            status)[cache_level]*100  # 缓存命中率
+        level_utilization = (1-free_ratio) * 100  # 存储空间利用率
         storage_utilization = es.storage_utilization * 100  # 存储空间利用率
 
         reward = cache_hit_rate * storage_utilization * \
-            (action_cost*free_ratio) * \
-            (anti_cache_full_rate*(1-free_ratio))
+            (((action_cost**2)*free_ratio) +
+             (anti_cache_full_rate*(1-free_ratio)))
         self.reward_history.append(reward)
-        return reward  # TODO: CACHE_FULL_PENALTY
+        return reward
