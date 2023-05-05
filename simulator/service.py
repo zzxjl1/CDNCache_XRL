@@ -20,8 +20,8 @@ class Service():
 
     def reset(self):
         #self.version = generate_version()
-        #self.size = round(random.uniform(5, 10*GB2MB))
-        self.size = round(generate_size(0.2, 20)*GB2MB)
+        self.size = round(random.uniform(5, 10*GB2MB))
+        #self.size = round(generate_size(0.2, 20)*GB2MB)
         self.feature_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述服务的特征
         # 服务的魅力值(标准正态分布)
         self.charm = round(abs(np.random.standard_normal(1)[0]), 2)

@@ -33,8 +33,9 @@ class EdgeServer():
         self.conns = []  # 提供服务的连接
 
         # 随机生成地理位置
-        x = random.uniform(0, CANVAS_SIZE_X)
-        y = random.uniform(0, CANVAS_SIZE_Y)
+        padding = 5
+        x = random.uniform(0+padding, CANVAS_SIZE_X-padding)
+        y = random.uniform(0+padding, CANVAS_SIZE_Y-padding)
         self.location = (x, y)
 
         self.faulty = False  # 是否故障
@@ -328,13 +329,13 @@ class EdgeServer():
         #res += f"Version: {self.version}\n"
         res += f"Max connections: {self.max_conn}\n"
         res += f"Location: {self.location}\n"
-        res += f"Faulty: {self.faulty}\n"
+        #res += f"Faulty: {self.faulty}\n"
         res += f"Service range: {self.service_range} km\n"
         res += f"Storage (memory, SSD, HDD): {self.storage_size} GB\n"
-        res += f"Storage speed (memory, SSD, HDD): {self.storage_speed} mB/s\n"
+        #res += f"Storage speed (memory, SSD, HDD): {self.storage_speed} mB/s\n"
         res += f"Bandwidth: {self.bandwidth} mB/s\n"
         res += f"Speed limit: {self.speed_limit} mB/s\n"
-        res += f"Stablity: {self.stablity}\n"
+        #res += f"Stablity: {self.stablity}\n"
 
         return res
 

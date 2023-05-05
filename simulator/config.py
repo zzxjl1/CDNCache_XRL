@@ -1,7 +1,7 @@
 LATEST_VERSION = 5.0  # 最新版本号
 SERVICE_COUNT = 1e4  # 服务数量
 EDGE_SERVER_COUNT = 7  # 边缘服务器数量
-USER_COUNT = 50  # 用户数量
+USER_COUNT = 150  # 用户数量
 FEATURE_VECTOR_SIZE = 256  # 特征向量维度
 CANVAS_SIZE_X = 150  # 画布大小X轴(KM)
 CANVAS_SIZE_Y = 50  # 画布大小Y轴(KM)
