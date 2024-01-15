@@ -1,14 +1,24 @@
 from faker import Faker
-from utils import add_connection_history, calc_request_frequency, pop_expired_connection_history, GB2MB
+from utils import (
+    add_connection_history,
+    calc_request_frequency,
+    pop_expired_connection_history,
+    GB2MB,
+)
 import random
 import numpy as np
-from .config import FEATURE_VECTOR_SIZE, SERVICE_CHARM_ABRUPT_CHANGE_PROBABILITY, SERVICE_CHARM_CAUSAL_CHANGE_PROBABILITY, ENABLE_CHARM_CHANGE
+from .config import (
+    FEATURE_VECTOR_SIZE,
+    SERVICE_CHARM_ABRUPT_CHANGE_PROBABILITY,
+    SERVICE_CHARM_CAUSAL_CHANGE_PROBABILITY,
+    ENABLE_CHARM_CHANGE,
+)
 from utils import generate_size
 
 fake = Faker()
 
 
-class Service():
+class Service:
     id_counter = 0
 
     def __init__(self) -> None:
@@ -19,9 +29,9 @@ class Service():
         self.reset()
 
     def reset(self):
-        #self.version = generate_version()
-        #self.size = round(random.uniform(5, 10*GB2MB))
-        self.size = round(generate_size(0.05, 20)*GB2MB)
+        # self.version = generate_version()
+        # self.size = round(random.uniform(5, 1 * GB2MB))
+        self.size = round(generate_size())
         self.feature_vector = np.random.rand(FEATURE_VECTOR_SIZE)  # 描述服务的特征
         # 服务的魅力值(标准正态分布)
         self.charm = round(abs(np.random.standard_normal(1)[0]), 2)
@@ -58,10 +68,10 @@ class Service():
     def show(self) -> str:
         res = f"Service id: {self.id}\n"
         res += f"Name: {self.name}\n"
-        #res += f"Version: {self.version}\n"
+        # res += f"Version: {self.version}\n"
         res += f"Size: {self.size} MB\n"
         res += f"Charm: {self.charm}\n"
-        #res += f"Feature vector: {self.feature_vector}\n"
+        # res += f"Feature vector: {self.feature_vector}\n"
         return res
 
 
