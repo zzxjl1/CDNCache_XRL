@@ -13,7 +13,7 @@ DAY2HOUR = 24
 
 
 def generate_size():
-    """生成满足正态分布的服务大小，即大部分服务大小为中等大小，零星出现小服务和大服务"""
+    """生成满足zipf分布的服务大小，即大部分服务很小，零星出现大服务"""
     t = np.random.zipf(a=2, size=1)[0]
     return t * 100 * random.random() + 1
 
