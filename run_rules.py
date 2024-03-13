@@ -8,53 +8,64 @@ import pandas as pd
 import os
 
 if not os.path.exists("cache_df.csv"):
-    cache_df = pd.DataFrame(columns=["es_load",
-                                     "free_storage_size_ratio_L1",
-                                     "free_storage_size_ratio_L2",
-                                     "free_storage_size_ratio_L3",
-                                     "can_L1_fit", "can_L2_fit", "can_L3_fit",
-                                     "service_size",
-                                     "estimated_fetch_time",
-                                     "is_popular", "charm",
-                                     "service_request_frequency",
-                                     "nearby_servers_count",
-                                     "cached_in_nearby_servers",
-                                     "es_request_frequency",
-                                     "action"])
+    cache_df = pd.DataFrame(
+        columns=[
+            "es_load",
+            "free_storage_size_ratio_L1",
+            "free_storage_size_ratio_L2",
+            "free_storage_size_ratio_L3",
+            "can_L1_fit",
+            "can_L2_fit",
+            "can_L3_fit",
+            "service_size",
+            "estimated_fetch_time",
+            "is_popular",
+            "charm",
+            "service_request_frequency",
+            "nearby_servers_count",
+            "cached_in_nearby_servers",
+            "es_request_frequency",
+            "action",
+        ]
+    )
 else:
     cache_df = pd.read_csv("cache_df.csv")
 
 if not os.path.exists("maintainance_df.csv"):
-    maintainance_df = pd.DataFrame(columns=["free_space_ratio",
-                                            "service_size_ratio",
-                                            "cached_in_L1",
-                                            "cached_in_L2",
-                                            "cached_in_L3",
-                                            "service_charm",
-                                            "service_request_frequency",
-                                            "es_request_frequency",
-                                            "es_cache_miss_rate",
-                                            "least_freq_index",
-                                            "is_ugent",
-                                            "action"])
+    maintainance_df = pd.DataFrame(
+        columns=[
+            "free_space_ratio",
+            "service_size_ratio",
+            "cached_in_L1",
+            "cached_in_L2",
+            "cached_in_L3",
+            "service_charm",
+            "service_request_frequency",
+            "es_request_frequency",
+            "es_cache_miss_rate",
+            "least_freq_index",
+            "is_ugent",
+            "action",
+        ]
+    )
 else:
     maintainance_df = pd.read_csv("maintainance_df.csv")
 
 
 def request_callback(conn):
-    #print("request_callback called")
+    # print("request_callback called")
     pass
 
 
 def cache_hit_callback(conn):
-    #print("cache_hit_callback called")
+    # print("cache_hit_callback called")
     pass
 
 
 def cache_miss_callback(conn):
     cache_agent = conn.source.cache_agent
     obs = cache_agent.generate_observation(env, conn)
-    pprint(obs)
+    # pprint(obs)
 
     action = None
     if obs["es_load"] > 0.9:  # ES_load过高，不缓存
@@ -77,10 +88,11 @@ def cache_miss_callback(conn):
     global cache_df
     obs["action"] = action
     cache_df = cache_df.append(obs, ignore_index=True)
-    #cache_df.to_csv("cache_df.csv", index=False)
+    # cache_df.to_csv("cache_df.csv", index=False)
 
 
 def service_maintainance_callback(es, service, ugent):
+    return
     print("service_maintainance_callback called", es, service)
     maintainance_agent = es.maintainance_agent
     obs = maintainance_agent.generate_observation(es, service, ugent)
@@ -100,17 +112,17 @@ def service_maintainance_callback(es, service, ugent):
     score *= obs["es_cache_miss_rate"]
     score *= 1 - obs["free_space_ratio"]
 
-    def sigmoid(x): return 1 / (1 + 2.71828 ** (-x))
+    def sigmoid(x):
+        return 1 / (1 + 2.71828 ** (-x))
+
     score *= sigmoid(obs["least_freq_index"])
     print("score:", score)
 
     # 按概率选动作
-    if random.random() < score/2:
+    if random.random() < score / 2:
         action = "DELETE"
     else:
         action = "PRESERVE"
-
-    print("action:", action)
 
     # overwrite
     if obs["is_ugent"] and obs["least_freq_index"] <= 1:
@@ -126,7 +138,7 @@ def service_maintainance_callback(es, service, ugent):
     global maintainance_df
     obs["action"] = action
     maintainance_df = maintainance_df.append(obs, ignore_index=True)
-    #maintainance_df.to_csv("maintainance_df.csv", index=False)
+    # maintainance_df.to_csv("maintainance_df.csv", index=False)
 
 
 if __name__ == "__main__":

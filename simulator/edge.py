@@ -1,8 +1,18 @@
 import uuid
 import random
 from dqn_agents import CacheAgent, MaintainanceAgent
-#from ppo_agents import CacheAgent, MaintainanceAgent
-from utils import calc_distance, add_connection_history, calc_request_frequency, pop_expired_connection_history, GB2MB, TB2GB, SEC2MS, MIN2SEC
+
+# from ppo_agents import CacheAgent, MaintainanceAgent
+from utils import (
+    calc_distance,
+    add_connection_history,
+    calc_request_frequency,
+    pop_expired_connection_history,
+    GB2MB,
+    TB2GB,
+    SEC2MS,
+    MIN2SEC,
+)
 from .config import CANVAS_SIZE_X, CANVAS_SIZE_Y, DEBUG, PRINT_ES_STATUS
 
 
@@ -12,11 +22,10 @@ def mutable_print(text):
     print(text)
 
 
-class EdgeServer():
+class EdgeServer:
     id_counter = 0
 
-    def __init__(self, use_uuid=False
-                 ) -> None:
+    def __init__(self, use_uuid=False) -> None:
         if use_uuid:
             self.id = uuid.uuid4()
         else:
@@ -34,8 +43,8 @@ class EdgeServer():
 
         # 随机生成地理位置
         padding = 5
-        x = random.uniform(0+padding, CANVAS_SIZE_X-padding)
-        y = random.uniform(0+padding, CANVAS_SIZE_Y-padding)
+        x = random.uniform(0 + padding, CANVAS_SIZE_X - padding)
+        y = random.uniform(0 + padding, CANVAS_SIZE_Y - padding)
         self.location = (x, y)
 
         self.faulty = False  # 是否故障
@@ -43,17 +52,17 @@ class EdgeServer():
 
         # 最大存储容量（mB）
         # 三级缓存形如(L1,L2,L3)，其中L1为内存，L2为SSD，L3为HDD
-        L1 = random.choice([4, 8, 16])
-        L2 = random.choice([32, 64, 128, 256])
-        L3 = random.choice([200, 300, 500, 700, 1000])
+        L1 = random.choice([8, 16, 32])
+        L2 = random.choice([64, 128, 256])
+        L3 = random.choice([512])
         self.storage_size = (L1, L2, L3)
 
-        L1_speed = random.randint(8, 40)*GB2MB
-        L2_speed = random.randint(500, 2*GB2MB)
+        L1_speed = random.randint(8, 40) * GB2MB
+        L2_speed = random.randint(500, 2 * GB2MB)
         L3_speed = random.randint(50, 300)
         self.storage_speed = (L1_speed, L2_speed, L3_speed)  # 磁盘读写速度（mB/s）
 
-        self.bandwidth = random.uniform(0.5, 10)*GB2MB  # 最大吞吐量（mB/s）
+        self.bandwidth = random.uniform(0.5, 10) * GB2MB  # 最大吞吐量（mB/s）
         # 对每个用户的限速（mB/s）-1表示不限速
         self.speed_limit = -1
         self.stablity = 1  # 稳定性(模拟随机出错，拒绝服务)
@@ -69,24 +78,24 @@ class EdgeServer():
 
     @property
     def conn_num(self):
-        return len(self.conns)+len(self.services_to_fetch)
+        return len(self.conns) + len(self.services_to_fetch)
 
     @property
     def load(self):
-        return self.conn_num/self.max_conn
+        return self.conn_num / self.max_conn
 
     @property
     def estimated_network_speed(self):
         if self.conn_num == 0:
             return self.bandwidth
-        return self.bandwidth/self.conn_num
+        return self.bandwidth / self.conn_num
 
     @property
     def cache_miss_rate(self, num=10):
         temp = self.connection_history[-num:]
         if len(temp) == 0:
             return 0
-        return len([c for c in temp if c.cached_initally == False])/len(temp)
+        return len([c for c in temp if c.cached_initally == False]) / len(temp)
 
     @property
     def cache_hit_status(self):
@@ -109,7 +118,7 @@ class EdgeServer():
         for level in self.cache.keys():
             used += self.storage_used(level)
             total += self.get_storage_size(level)
-        return used/total
+        return used / total
 
     def fetch_from_datacenter(self, service):
         if self.is_caching_service(service):
@@ -132,7 +141,7 @@ class EdgeServer():
 
     def get_storage_size(self, level):
         index = list(self.cache.keys()).index(level)
-        return self.storage_size[index]*GB2MB
+        return self.storage_size[index] * GB2MB
 
     def storage_used(self, level=None):
         if level is None:
@@ -146,7 +155,7 @@ class EdgeServer():
         if level is None:
             return [self.free_storage_size(level) for level in self.cache.keys()]
         total = self.get_storage_size(level)
-        return total-self.storage_used(level)
+        return total - self.storage_used(level)
 
     def fetch_from_datacenter_speed(self):
         network_speed = self.estimated_network_speed
@@ -155,7 +164,7 @@ class EdgeServer():
         return network_speed  # 每秒的速度
 
     def exceed_size_limit_with_service_added(self, service, level):
-        return self.storage_used(level)+service.size > self.get_storage_size(level)
+        return self.storage_used(level) + service.size > self.get_storage_size(level)
 
     def pop_least_frequently_requested(self, level):
         if len(self.cache[level]) == 0:
@@ -177,8 +186,7 @@ class EdgeServer():
             return False
 
         if self.exceed_size_limit_with_service_added(service, level):
-            mutable_print(
-                f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}，正在淘汰缓存！")
+            mutable_print(f"【容量警告】{self} 的 {level} CACHE 已满，无法添加 {service}，正在淘汰缓存！")
             self.add_cache_event("CACHE_FULL")
 
             attempts = 1
@@ -186,8 +194,7 @@ class EdgeServer():
             while attempts:
                 attempts -= 1
                 self.maintainance(env, level, ugent=True)
-                success = not self.exceed_size_limit_with_service_added(
-                    service, level)
+                success = not self.exceed_size_limit_with_service_added(service, level)
                 if success:
                     self.add_to_cache(env, service, level)
                     break
@@ -223,7 +230,7 @@ class EdgeServer():
         return self.storage_speed[index]
 
     def get_estimated_cache_speed(self, level):
-        return self.get_cache_speed(level)/(self.count_conn_by_cache_level(level)+1)
+        return self.get_cache_speed(level) / (self.count_conn_by_cache_level(level) + 1)
 
     def get_estimated_download_speed_with_cache(self, level):  # 有缓存情况下的速度
         network_speed = self.estimated_network_speed
@@ -279,8 +286,7 @@ class EdgeServer():
             mutable_print(f"{self} is faulty!")
             return False
         if random.random() > self.stablity:
-            mutable_print(
-                f"{self} is unstable and refused the connection！")
+            mutable_print(f"{self} is unstable and refused the connection！")
             return False
         self.conns.append(conn)
         self.add_history(conn)
@@ -288,8 +294,7 @@ class EdgeServer():
 
     def disconnect(self, conn) -> bool:
         if conn not in self.conns:
-            mutable_print(
-                f"failed to close, {self} does not have this connection!")
+            mutable_print(f"failed to close, {self} does not have this connection!")
             return False
         self.conns.remove(conn)
         return True
@@ -326,16 +331,16 @@ class EdgeServer():
     @property
     def description(self) -> str:
         res = f"EdgeServer id：{self.id}\n"
-        #res += f"Version: {self.version}\n"
+        # res += f"Version: {self.version}\n"
         res += f"Max connections: {self.max_conn}\n"
         res += f"Location: {self.location}\n"
-        #res += f"Faulty: {self.faulty}\n"
+        # res += f"Faulty: {self.faulty}\n"
         res += f"Service range: {self.service_range} km\n"
         res += f"Storage (memory, SSD, HDD): {self.storage_size} GB\n"
-        #res += f"Storage speed (memory, SSD, HDD): {self.storage_speed} mB/s\n"
+        # res += f"Storage speed (memory, SSD, HDD): {self.storage_speed} mB/s\n"
         res += f"Bandwidth: {self.bandwidth} mB/s\n"
         res += f"Speed limit: {self.speed_limit} mB/s\n"
-        #res += f"Stablity: {self.stablity}\n"
+        # res += f"Stablity: {self.stablity}\n"
 
         return res
 
